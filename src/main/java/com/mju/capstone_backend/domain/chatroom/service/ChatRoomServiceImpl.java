@@ -168,14 +168,22 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                                                 "You do not have permission to delete this chat room.");
                         }
 
-                        itineraryRepository.findByRoomId(roomId).ifPresent(itinerary -> {
-                                if (reservationRepository.existsByItineraryId(itinerary.getId())) {
+                        var itineraryOpt = itineraryRepository.findByRoomId(roomId);
+
+                        itineraryOpt.ifPresent(itinerary -> {
+                                if (reservationRepository.existsByItineraryIdAndStatusIn(
+                                                itinerary.getId(), List.of("confirmed", "changed"))) {
                                         throw new ResponseStatusException(HttpStatus.CONFLICT,
-                                                        "Cannot delete chat room with existing reservations.");
+                                                        "Cannot delete chat room with active reservations. Please cancel all reservations first.");
                                 }
                         });
 
-                        chatRoomRepository.deleteById(roomId);
+                        transactionTemplate.execute(status -> {
+                                itineraryOpt.ifPresent(itinerary ->
+                                                reservationRepository.deleteCancelledByItineraryId(itinerary.getId()));
+                                chatRoomRepository.deleteById(roomId);
+                                return null;
+                        });
 
                         return new DeleteChatRoomResponse(roomId, true);
                 }).subscribeOn(dbScheduler)
