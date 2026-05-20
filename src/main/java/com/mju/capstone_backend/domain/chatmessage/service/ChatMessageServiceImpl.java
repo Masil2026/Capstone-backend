@@ -145,12 +145,23 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                                         "Failed to serialize done payload.");
                             }
                         });
-                    })
-                    .onErrorMap(
-                            e -> !(e instanceof ResponseStatusException),
-                            e -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                                    "Failed to process AI response.")
-                    );
+                    });
+        })
+        .onErrorResume(e -> {
+            log.error("SSE stream error for roomId={}: {}", roomId, e.getMessage(), e);
+            String message;
+            int status;
+            if (e instanceof ResponseStatusException rse) {
+                message = rse.getReason() != null ? rse.getReason() : "An error occurred.";
+                status = rse.getStatusCode().value();
+            } else {
+                message = "Failed to process AI response.";
+                status = 500;
+            }
+            return Flux.just(ServerSentEvent.<Object>builder()
+                    .event("error")
+                    .data(Map.of("status", status, "message", message))
+                    .build());
         });
     }
 
@@ -191,17 +202,37 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             case FastApiDonePayload.Chat ignored ->
                     new MessageDoneResponse(userItem, assistantItem, null, null, null, null);
 
-            case FastApiDonePayload.Itinerary itinerary ->
-                    processItinerary(chatRoom.getId(), assistantMsg.getId(), userItem, assistantItem, itinerary);
+            case FastApiDonePayload.Itinerary itinerary -> {
+                if (itinerary.itinerary() == null) {
+                    log.warn("type=itinerary but itinerary data is null — treating as chat. roomId={}", chatRoom.getId());
+                    yield new MessageDoneResponse(userItem, assistantItem, null, null, null, null);
+                }
+                yield processItinerary(chatRoom.getId(), assistantMsg.getId(), userItem, assistantItem, itinerary);
+            }
 
-            case FastApiDonePayload.Change change ->
-                    processChange(chatRoom.getId(), assistantMsg.getId(), userItem, assistantItem, change);
+            case FastApiDonePayload.Change change -> {
+                if (change.change() == null) {
+                    log.warn("type=change but change data is null — treating as chat. roomId={}", chatRoom.getId());
+                    yield new MessageDoneResponse(userItem, assistantItem, null, null, null, null);
+                }
+                yield processChange(chatRoom.getId(), assistantMsg.getId(), userItem, assistantItem, change);
+            }
 
-            case FastApiDonePayload.Reservation reservation ->
-                    processReservation(chatRoom.getId(), assistantMsg.getId(), userItem, assistantItem, reservation);
+            case FastApiDonePayload.Reservation reservation -> {
+                if (reservation.reservation() == null) {
+                    log.warn("type=reservation but reservation data is null — treating as chat. roomId={}", chatRoom.getId());
+                    yield new MessageDoneResponse(userItem, assistantItem, null, null, null, null);
+                }
+                yield processReservation(chatRoom.getId(), assistantMsg.getId(), userItem, assistantItem, reservation);
+            }
 
-            case FastApiDonePayload.Cancel cancel ->
-                    processCancel(chatRoom.getId(), assistantMsg.getId(), userItem, assistantItem, cancel);
+            case FastApiDonePayload.Cancel cancel -> {
+                if (cancel.cancel() == null) {
+                    log.warn("type=cancel but cancel data is null — treating as chat. roomId={}", chatRoom.getId());
+                    yield new MessageDoneResponse(userItem, assistantItem, null, null, null, null);
+                }
+                yield processCancel(chatRoom.getId(), assistantMsg.getId(), userItem, assistantItem, cancel);
+            }
         };
     }
 
