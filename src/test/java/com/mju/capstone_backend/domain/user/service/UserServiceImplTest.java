@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
@@ -21,6 +22,9 @@ class UserServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private ClerkApiClient clerkApiClient;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -60,5 +64,38 @@ class UserServiceImplTest {
 
         verify(userRepository).existsById(clerkId);
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("회원탈퇴 - DB 삭제 후 Clerk 계정 삭제 호출")
+    void deleteAccount_existingUser_deletesFromDbAndClerk() throws Exception {
+        injectScheduler();
+        String clerkId = "user_toDeleteClerkId";
+        when(userRepository.existsById(clerkId)).thenReturn(true);
+        doNothing().when(userRepository).deleteById(clerkId);
+        when(clerkApiClient.deleteUser(clerkId)).thenReturn(Mono.empty());
+
+        StepVerifier.create(userService.deleteAccount(clerkId))
+                .verifyComplete();
+
+        verify(userRepository).existsById(clerkId);
+        verify(userRepository).deleteById(clerkId);
+        verify(clerkApiClient).deleteUser(clerkId);
+    }
+
+    @Test
+    @DisplayName("회원탈퇴 - DB에 없는 사용자도 Clerk 삭제는 호출")
+    void deleteAccount_nonExistingUser_skipsDbDeleteButCallsClerk() throws Exception {
+        injectScheduler();
+        String clerkId = "user_notInDbClerkId";
+        when(userRepository.existsById(clerkId)).thenReturn(false);
+        when(clerkApiClient.deleteUser(clerkId)).thenReturn(Mono.empty());
+
+        StepVerifier.create(userService.deleteAccount(clerkId))
+                .verifyComplete();
+
+        verify(userRepository).existsById(clerkId);
+        verify(userRepository, never()).deleteById(any());
+        verify(clerkApiClient).deleteUser(clerkId);
     }
 }

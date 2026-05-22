@@ -261,15 +261,18 @@ class ChatRoomServiceImplTest {
 
     // ─── deleteChatRoom ───────────────────────────────────────────────────────
 
+    private static final List<String> ACTIVE_STATUSES = List.of("confirmed", "changed");
+
     @Test
-    @DisplayName("채팅방 삭제 - 정상 요청 시 삭제 후 응답 반환")
-    void deleteChatRoom_success() {
+    @DisplayName("채팅방 삭제 - 예약 없음: 트랜잭션 내 채팅방 삭제")
+    void deleteChatRoom_noReservations_success() {
         ChatRoom chatRoom = mockChatRoom(ROOM_ID, CLERK_ID, "삭제할 채팅방");
         Itinerary itinerary = mockItinerary(ITINERARY_ID, ROOM_ID);
 
         when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
         when(itineraryRepository.findByRoomId(ROOM_ID)).thenReturn(Optional.of(itinerary));
-        when(reservationRepository.existsByItineraryId(ITINERARY_ID)).thenReturn(false);
+        when(reservationRepository.existsByItineraryIdAndStatusIn(ITINERARY_ID, ACTIVE_STATUSES)).thenReturn(false);
+        doNothing().when(reservationRepository).deleteCancelledByItineraryId(ITINERARY_ID);
         doNothing().when(chatRoomRepository).deleteById(ROOM_ID);
 
         StepVerifier.create(chatRoomService.deleteChatRoom(CLERK_ID, ROOM_ID))
@@ -279,7 +282,48 @@ class ChatRoomServiceImplTest {
                 })
                 .verifyComplete();
 
+        verify(reservationRepository).deleteCancelledByItineraryId(ITINERARY_ID);
         verify(chatRoomRepository).deleteById(ROOM_ID);
+    }
+
+    @Test
+    @DisplayName("채팅방 삭제 - cancelled 예약만 존재: 취소 예약 삭제 후 채팅방 삭제")
+    void deleteChatRoom_onlyCancelledReservations_deletesAndSucceeds() {
+        ChatRoom chatRoom = mockChatRoom(ROOM_ID, CLERK_ID, "취소 예약만 있는 채팅방");
+        Itinerary itinerary = mockItinerary(ITINERARY_ID, ROOM_ID);
+
+        when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
+        when(itineraryRepository.findByRoomId(ROOM_ID)).thenReturn(Optional.of(itinerary));
+        when(reservationRepository.existsByItineraryIdAndStatusIn(ITINERARY_ID, ACTIVE_STATUSES)).thenReturn(false);
+        doNothing().when(reservationRepository).deleteCancelledByItineraryId(ITINERARY_ID);
+        doNothing().when(chatRoomRepository).deleteById(ROOM_ID);
+
+        StepVerifier.create(chatRoomService.deleteChatRoom(CLERK_ID, ROOM_ID))
+                .assertNext(res -> assertThat(res.deleted()).isTrue())
+                .verifyComplete();
+
+        var inOrder = inOrder(reservationRepository, chatRoomRepository);
+        inOrder.verify(reservationRepository).deleteCancelledByItineraryId(ITINERARY_ID);
+        inOrder.verify(chatRoomRepository).deleteById(ROOM_ID);
+    }
+
+    @Test
+    @DisplayName("채팅방 삭제 - confirmed/changed 예약 존재 시 409 반환")
+    void deleteChatRoom_hasActiveReservations_returns409() {
+        ChatRoom chatRoom = mockChatRoom(ROOM_ID, CLERK_ID, "활성 예약 있는 채팅방");
+        Itinerary itinerary = mockItinerary(ITINERARY_ID, ROOM_ID);
+
+        when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
+        when(itineraryRepository.findByRoomId(ROOM_ID)).thenReturn(Optional.of(itinerary));
+        when(reservationRepository.existsByItineraryIdAndStatusIn(ITINERARY_ID, ACTIVE_STATUSES)).thenReturn(true);
+
+        StepVerifier.create(chatRoomService.deleteChatRoom(CLERK_ID, ROOM_ID))
+                .expectErrorMatches(e -> e instanceof ResponseStatusException rse
+                        && rse.getStatusCode() == CONFLICT)
+                .verify();
+
+        verify(chatRoomRepository, never()).deleteById(any());
+        verify(reservationRepository, never()).deleteCancelledByItineraryId(any());
     }
 
     @Test
@@ -304,24 +348,6 @@ class ChatRoomServiceImplTest {
                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
                         && rse.getStatusCode() == FORBIDDEN)
                 .verify();
-    }
-
-    @Test
-    @DisplayName("채팅방 삭제 - 예약이 존재하는 채팅방 삭제 시 409 반환")
-    void deleteChatRoom_hasReservations_returns409() {
-        ChatRoom chatRoom = mockChatRoom(ROOM_ID, CLERK_ID, "예약 있는 채팅방");
-        Itinerary itinerary = mockItinerary(ITINERARY_ID, ROOM_ID);
-
-        when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(chatRoom));
-        when(itineraryRepository.findByRoomId(ROOM_ID)).thenReturn(Optional.of(itinerary));
-        when(reservationRepository.existsByItineraryId(ITINERARY_ID)).thenReturn(true);
-
-        StepVerifier.create(chatRoomService.deleteChatRoom(CLERK_ID, ROOM_ID))
-                .expectErrorMatches(e -> e instanceof ResponseStatusException rse
-                        && rse.getStatusCode() == CONFLICT)
-                .verify();
-
-        verify(chatRoomRepository, never()).deleteById(any());
     }
 
     // ─── 헬퍼 ─────────────────────────────────────────────────────────────────

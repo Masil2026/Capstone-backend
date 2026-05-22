@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -26,5 +27,13 @@ public class UserController {
     public Mono<Void> signup(JwtAuthenticationToken authentication) {
         String clerkId = authentication.getToken().getSubject();
         return userService.signup(clerkId);
+    }
+
+    @Operation(summary = "회원탈퇴", description = "DB에서 유저 및 연관 데이터를 cascade 삭제한 뒤 Clerk에서도 계정을 삭제한다.")
+    @DeleteMapping("/signout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public Mono<Void> deleteAccount(JwtAuthenticationToken authentication) {
+        String clerkId = authentication.getToken().getSubject();
+        return userService.deleteAccount(clerkId);
     }
 }

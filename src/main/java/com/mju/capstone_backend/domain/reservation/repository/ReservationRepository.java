@@ -14,10 +14,17 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
 
     boolean existsByItineraryId(UUID itineraryId);
 
+    boolean existsByItineraryIdAndStatusIn(UUID itineraryId, List<String> statuses);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM Reservation r WHERE r.itineraryId = :itineraryId")
     void deleteAllByItineraryId(@Param("itineraryId") UUID itineraryId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Reservation r WHERE r.itineraryId = :itineraryId AND r.status = 'cancelled'")
+    void deleteCancelledByItineraryId(@Param("itineraryId") UUID itineraryId);
 
     @Query(value = """
             SELECT r.* FROM reservations r

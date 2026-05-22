@@ -57,4 +57,31 @@ class UserControllerTest {
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
+
+    @Test
+    @DisplayName("회원탈퇴 - 유효한 JWT로 요청 시 204 반환 및 서비스 호출")
+    void deleteAccount_withValidJwt_returns204() {
+        String clerkId = "user_testClerkId";
+        when(userService.deleteAccount(clerkId)).thenReturn(Mono.empty());
+
+        webTestClient
+                .mutateWith(SecurityMockServerConfigurers.mockJwt()
+                        .jwt(jwt -> jwt.subject(clerkId)))
+                .delete()
+                .uri("/api/v1/users/signout")
+                .exchange()
+                .expectStatus().isNoContent();
+
+        verify(userService).deleteAccount(clerkId);
+    }
+
+    @Test
+    @DisplayName("회원탈퇴 - JWT 없이 요청 시 401 반환")
+    void deleteAccount_withoutJwt_returns401() {
+        webTestClient
+                .delete()
+                .uri("/api/v1/users/signout")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
 }

@@ -13,6 +13,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final Scheduler dbScheduler;
+    private final ClerkApiClient clerkApiClient;
 
     @Override
     public Mono<Void> signup(String clerkId) {
@@ -24,5 +25,16 @@ public class UserServiceImpl implements UserService {
         })
         .subscribeOn(dbScheduler)
         .then();
+    }
+
+    @Override
+    public Mono<Void> deleteAccount(String clerkId) {
+        return Mono.fromRunnable(() -> {
+                    if (userRepository.existsById(clerkId)) {
+                        userRepository.deleteById(clerkId);
+                    }
+                })
+                .subscribeOn(dbScheduler)
+                .then(clerkApiClient.deleteUser(clerkId));
     }
 }
