@@ -360,9 +360,12 @@ class ChatMessageServiceImplTest {
 
         // when & then
         StepVerifier.create(chatMessageService.sendMessage(CLERK_ID, ROOM_ID, "항공권 예약해줘"))
-                .expectErrorMatches(e -> e instanceof ResponseStatusException rse
-                        && rse.getStatusCode() == NOT_FOUND)
-                .verify();
+                .assertNext(sse -> {
+                    assertThat(sse.event()).isEqualTo("error");
+                    assertThat(sse.data()).isInstanceOf(Map.class);
+                    assertThat(((Map<?, ?>) sse.data()).get("status")).isEqualTo(404);
+                })
+                .verifyComplete();
     }
 
     @Test
@@ -430,9 +433,12 @@ class ChatMessageServiceImplTest {
 
         // when & then
         StepVerifier.create(chatMessageService.sendMessage(CLERK_ID, ROOM_ID, "예약 취소해줘"))
-                .expectErrorMatches(e -> e instanceof ResponseStatusException rse
-                        && rse.getStatusCode() == NOT_FOUND)
-                .verify();
+                .assertNext(sse -> {
+                    assertThat(sse.event()).isEqualTo("error");
+                    assertThat(sse.data()).isInstanceOf(Map.class);
+                    assertThat(((Map<?, ?>) sse.data()).get("status")).isEqualTo(404);
+                })
+                .verifyComplete();
     }
 
     // ─── 헬퍼 ─────────────────────────────────────────────────────────────────
