@@ -12,6 +12,7 @@ import com.mju.capstone_backend.domain.itinerary.dto.PatchItineraryRequest;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchItineraryResponse;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchStatusRequest;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchStatusResponse;
+import com.mju.capstone_backend.domain.chatmessage.service.ChatMessageService;
 import com.mju.capstone_backend.domain.itinerary.service.ItineraryService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,9 @@ class ItineraryControllerTest {
 
     @MockitoBean
     private ItineraryService itineraryService;
+
+    @MockitoBean
+    private ChatMessageService chatMessageService;
 
     private static final String CLERK_ID = "user_testClerkId";
     private static final UUID ITINERARY_ID = UUID.randomUUID();
