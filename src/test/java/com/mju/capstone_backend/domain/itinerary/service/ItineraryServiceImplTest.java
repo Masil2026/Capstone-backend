@@ -2,6 +2,7 @@ package com.mju.capstone_backend.domain.itinerary.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mju.capstone_backend.domain.chatroom.entity.ChatRoom;
+import io.r2dbc.postgresql.codec.Json;
 import com.mju.capstone_backend.domain.chatroom.repository.ChatRoomRepository;
 import com.mju.capstone_backend.domain.itinerary.dto.DestinationItem;
 import com.mju.capstone_backend.domain.itinerary.dto.GetItinerariesResponse;
@@ -1106,7 +1107,7 @@ class ItineraryServiceImplTest {
 
             var dayPlansField = Itinerary.class.getDeclaredField("dayPlans");
             dayPlansField.setAccessible(true);
-            dayPlansField.set(itinerary, dayPlans);
+            dayPlansField.set(itinerary, Json.of(dayPlans));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
