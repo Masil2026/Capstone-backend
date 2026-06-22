@@ -19,6 +19,7 @@ import com.mju.capstone_backend.domain.itinerary.service.ItineraryServiceImpl;
 import com.mju.capstone_backend.domain.reservation.repository.ReservationRepository;
 import com.mju.capstone_backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatRoomServiceImpl implements ChatRoomService {
@@ -100,6 +102,8 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                                         );
                             });
                 })
+                .doOnError(e -> !(e instanceof ResponseStatusException),
+                        e -> log.error("[createChatRoom] 예상치 못한 예외: {} - {}", e.getClass().getName(), e.getMessage(), e))
                 .onErrorMap(
                         e -> !(e instanceof ResponseStatusException),
                         e -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create chat room.")

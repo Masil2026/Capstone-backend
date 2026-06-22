@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -101,8 +102,8 @@ public class DevReservationController {
 
         @Operation(summary = "[DEV] 테스트 예약 데이터 삭제", description = "itineraryId에 연결된 모든 예약을 삭제합니다.")
         @DeleteMapping("/seed/{itineraryId}")
-        @ResponseStatus(HttpStatus.NO_CONTENT)
-        public Mono<Void> deleteSeed(@PathVariable UUID itineraryId) {
-                return reservationRepository.deleteAllByItineraryId(itineraryId);
+        public Mono<ResponseEntity<Void>> deleteSeed(@PathVariable UUID itineraryId) {
+                return reservationRepository.deleteAllByItineraryId(itineraryId)
+                        .thenReturn(ResponseEntity.<Void>noContent().<Void>build());
         }
 }

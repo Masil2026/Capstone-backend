@@ -1,5 +1,6 @@
 package com.mju.capstone_backend.domain.itinerary.entity;
 
+import io.r2dbc.postgresql.codec.Json;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,8 +25,9 @@ public class Itinerary implements Persistable<UUID> {
 
     private UUID roomId;
 
-    /** JSONB 컬럼 — DB에서 String으로 읽힘, 서비스 레이어에서 직렬화/역직렬화 */
-    private String destinations;
+    /** JSONB 컬럼 — R2DBC가 jsonb로 바인딩하도록 Json 타입으로 저장, getter는 String 반환 */
+    @Getter(AccessLevel.NONE)
+    private Json destinations;
 
     private LocalDate startDate;
     private LocalDate endDate;
@@ -34,13 +36,13 @@ public class Itinerary implements Persistable<UUID> {
     private int adultCount;
     private int childCount;
 
-    /** JSONB 컬럼 — DB에서 String으로 읽힘 */
-    private String childAges;
+    @Getter(AccessLevel.NONE)
+    private Json childAges;
 
     private String status;
 
-    /** JSONB 컬럼 — DB에서 String으로 읽힘 */
-    private String dayPlans;
+    @Getter(AccessLevel.NONE)
+    private Json dayPlans;
 
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
@@ -53,22 +55,26 @@ public class Itinerary implements Persistable<UUID> {
         return newEntity;
     }
 
+    public String getDestinations() { return destinations != null ? destinations.asString() : null; }
+    public String getChildAges()    { return childAges    != null ? childAges.asString()    : null; }
+    public String getDayPlans()     { return dayPlans     != null ? dayPlans.asString()     : null; }
+
     public static Itinerary of(UUID roomId, String destinationsJson,
                                BigDecimal budget, int adultCount, int childCount, String childAgesJson,
                                LocalDate startDate, LocalDate endDate) {
         Itinerary it = new Itinerary();
         it.id = UUID.randomUUID();
         it.roomId = roomId;
-        it.destinations = destinationsJson;
+        it.destinations = Json.of(destinationsJson);
         it.startDate = startDate;
         it.endDate = endDate;
         it.totalDays = (int) ChronoUnit.DAYS.between(startDate, endDate) + 1;
         it.budget = budget;
         it.adultCount = adultCount;
         it.childCount = childCount;
-        it.childAges = childAgesJson;
+        it.childAges = Json.of(childAgesJson);
         it.status = "draft";
-        it.dayPlans = buildInitialDayPlans(startDate, endDate);
+        it.dayPlans = Json.of(buildInitialDayPlans(startDate, endDate));
         it.createdAt = OffsetDateTime.now();
         it.updatedAt = OffsetDateTime.now();
         it.newEntity = true;
@@ -80,7 +86,7 @@ public class Itinerary implements Persistable<UUID> {
                                 String updatedDayPlans,
                                 LocalDate effectiveStart, LocalDate effectiveEnd) {
         if (destinationsJson != null) {
-            this.destinations = destinationsJson;
+            this.destinations = Json.of(destinationsJson);
             this.startDate = effectiveStart;
             this.endDate = effectiveEnd;
             this.totalDays = (int) ChronoUnit.DAYS.between(effectiveStart, effectiveEnd) + 1;
@@ -89,14 +95,14 @@ public class Itinerary implements Persistable<UUID> {
         if (adultCount != null) this.adultCount = adultCount;
         if (childCount != null) {
             this.childCount = childCount;
-            this.childAges = childAgesJson;
+            this.childAges = childAgesJson != null ? Json.of(childAgesJson) : null;
         }
-        if (updatedDayPlans != null) this.dayPlans = updatedDayPlans;
+        if (updatedDayPlans != null) this.dayPlans = Json.of(updatedDayPlans);
         this.updatedAt = OffsetDateTime.now();
     }
 
     public void updateDayPlans(String dayPlans) {
-        this.dayPlans = dayPlans;
+        this.dayPlans = Json.of(dayPlans);
         this.updatedAt = OffsetDateTime.now();
     }
 

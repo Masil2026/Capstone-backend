@@ -1,5 +1,6 @@
 package com.mju.capstone_backend.domain.reservation.entity;
 
+import io.r2dbc.postgresql.codec.Json;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,8 +28,8 @@ public class Reservation implements Persistable<UUID> {
     private String bookingUrl;
     private String externalRefId;
 
-    /** JSONB 컬럼 — DB에서 String으로 읽힘 */
-    private String detail;
+    @Getter(AccessLevel.NONE)
+    private Json detail;
 
     private BigDecimal totalPrice;
     private String currency;
@@ -45,6 +46,8 @@ public class Reservation implements Persistable<UUID> {
         return newEntity;
     }
 
+    public String getDetail() { return detail != null ? detail.asString() : null; }
+
     public static Reservation of(UUID itineraryId, String type, String status, String bookedBy,
                                  String bookingUrl, String externalRefId, String detail,
                                  BigDecimal totalPrice, String currency, OffsetDateTime reservedAt) {
@@ -56,7 +59,7 @@ public class Reservation implements Persistable<UUID> {
         r.bookedBy = bookedBy;
         r.bookingUrl = bookingUrl;
         r.externalRefId = externalRefId;
-        r.detail = detail;
+        r.detail = detail != null ? Json.of(detail) : null;
         r.totalPrice = totalPrice;
         r.currency = currency;
         r.reservedAt = reservedAt;
@@ -69,7 +72,7 @@ public class Reservation implements Persistable<UUID> {
     public void update(String status, String detail, BigDecimal totalPrice,
                        String currency, OffsetDateTime reservedAt, OffsetDateTime cancelledAt) {
         if (status != null) this.status = status;
-        if (detail != null) this.detail = detail;
+        if (detail != null) this.detail = Json.of(detail);
         if (totalPrice != null) this.totalPrice = totalPrice;
         if (currency != null) this.currency = currency;
         if (reservedAt != null) this.reservedAt = reservedAt;

@@ -1,5 +1,6 @@
 package com.mju.capstone_backend.domain.itinerary.entity;
 
+import io.r2dbc.postgresql.codec.Json;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,22 +24,22 @@ public class ItineraryLog implements Persistable<UUID> {
 
     private UUID itineraryId;
 
-    /** JSONB 컬럼 — DB에서 String으로 읽힘 */
-    private String destinations;
+    @Getter(AccessLevel.NONE)
+    private Json destinations;
 
     private BigDecimal budget;
     private Integer adultCount;
     private Integer childCount;
 
-    /** JSONB 컬럼 — DB에서 String으로 읽힘 */
-    private String childAges;
+    @Getter(AccessLevel.NONE)
+    private Json childAges;
 
     private Integer totalDays;
     private LocalDate startDate;
     private LocalDate endDate;
 
-    /** JSONB 컬럼 — DB에서 String으로 읽힘 */
-    private String dayPlans;
+    @Getter(AccessLevel.NONE)
+    private Json dayPlans;
 
     private OffsetDateTime createdAt;
 
@@ -50,19 +51,26 @@ public class ItineraryLog implements Persistable<UUID> {
         return newEntity;
     }
 
+    public String getDestinations() { return destinations != null ? destinations.asString() : null; }
+    public String getChildAges()    { return childAges    != null ? childAges.asString()    : null; }
+    public String getDayPlans()     { return dayPlans     != null ? dayPlans.asString()     : null; }
+
     public static ItineraryLog of(Itinerary itinerary) {
         ItineraryLog log = new ItineraryLog();
         log.id = UUID.randomUUID();
         log.itineraryId = itinerary.getId();
-        log.destinations = itinerary.getDestinations();
+        String dest = itinerary.getDestinations();
+        log.destinations = dest != null ? Json.of(dest) : null;
         log.budget = itinerary.getBudget();
         log.adultCount = itinerary.getAdultCount();
         log.childCount = itinerary.getChildCount();
-        log.childAges = itinerary.getChildAges();
+        String ages = itinerary.getChildAges();
+        log.childAges = ages != null ? Json.of(ages) : null;
         log.totalDays = itinerary.getTotalDays();
         log.startDate = itinerary.getStartDate();
         log.endDate = itinerary.getEndDate();
-        log.dayPlans = itinerary.getDayPlans();
+        String plans = itinerary.getDayPlans();
+        log.dayPlans = plans != null ? Json.of(plans) : null;
         log.createdAt = OffsetDateTime.now();
         log.newEntity = true;
         return log;

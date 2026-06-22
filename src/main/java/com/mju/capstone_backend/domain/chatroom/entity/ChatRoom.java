@@ -1,5 +1,6 @@
 package com.mju.capstone_backend.domain.chatroom.entity;
 
+import io.r2dbc.postgresql.codec.Json;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,7 +23,8 @@ public class ChatRoom implements Persistable<UUID> {
     private String clerkId;
     private String name;
     private String aiSummary;
-    private String preferences;
+    @Getter(AccessLevel.NONE)
+    private Json preferences;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -33,6 +35,8 @@ public class ChatRoom implements Persistable<UUID> {
     public boolean isNew() {
         return newEntity;
     }
+
+    public String getPreferences() { return preferences != null ? preferences.asString() : null; }
 
     public static ChatRoom of(String clerkId, String name) {
         ChatRoom chatRoom = new ChatRoom();
@@ -52,7 +56,7 @@ public class ChatRoom implements Persistable<UUID> {
 
     public void updateMemory(String aiSummary, String preferences) {
         if (aiSummary != null) this.aiSummary = aiSummary;
-        if (preferences != null) this.preferences = preferences;
+        if (preferences != null) this.preferences = Json.of(preferences);
         this.updatedAt = OffsetDateTime.now();
     }
 }

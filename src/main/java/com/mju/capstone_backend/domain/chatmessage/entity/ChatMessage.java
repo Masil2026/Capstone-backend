@@ -1,5 +1,6 @@
 package com.mju.capstone_backend.domain.chatmessage.entity;
 
+import io.r2dbc.postgresql.codec.Json;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,7 +23,8 @@ public class ChatMessage implements Persistable<UUID> {
     private UUID roomId;
     private String role;
     private String content;
-    private String actionResult;
+    @Getter(AccessLevel.NONE)
+    private Json actionResult;
     private OffsetDateTime createdAt;
 
     @Transient
@@ -32,6 +34,8 @@ public class ChatMessage implements Persistable<UUID> {
     public boolean isNew() {
         return newEntity;
     }
+
+    public String getActionResult() { return actionResult != null ? actionResult.asString() : null; }
 
     public static ChatMessage of(UUID roomId, String role, String content) {
         ChatMessage msg = new ChatMessage();
@@ -46,7 +50,7 @@ public class ChatMessage implements Persistable<UUID> {
 
     public static ChatMessage of(UUID roomId, String role, String content, String actionResult) {
         ChatMessage msg = of(roomId, role, content);
-        msg.actionResult = actionResult;
+        if (actionResult != null) msg.actionResult = Json.of(actionResult);
         return msg;
     }
 }
