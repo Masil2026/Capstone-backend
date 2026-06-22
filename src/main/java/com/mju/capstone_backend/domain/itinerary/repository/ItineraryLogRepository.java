@@ -1,12 +1,12 @@
 package com.mju.capstone_backend.domain.itinerary.repository;
 
 import com.mju.capstone_backend.domain.itinerary.entity.ItineraryLog;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import reactor.core.publisher.Flux;
 
-import java.util.List;
 import java.util.UUID;
 
-public interface ItineraryLogRepository extends JpaRepository<ItineraryLog, UUID> {
+public interface ItineraryLogRepository extends ReactiveCrudRepository<ItineraryLog, UUID> {
 
-    List<ItineraryLog> findByItineraryIdOrderByCreatedAtDesc(UUID itineraryId);
+    Flux<ItineraryLog> findByItineraryIdOrderByCreatedAtDesc(UUID itineraryId);
 }

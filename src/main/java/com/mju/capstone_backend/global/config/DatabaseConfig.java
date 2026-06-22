@@ -1,28 +1,40 @@
 package com.mju.capstone_backend.global.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import io.r2dbc.postgresql.codec.Json;
+import io.r2dbc.spi.ConnectionFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
-import java.util.concurrent.Executors;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.data.convert.ReadingConverter;
+import org.springframework.data.r2dbc.convert.R2dbcCustomConversions;
+import org.springframework.data.r2dbc.dialect.DialectResolver;
+import org.springframework.transaction.reactive.TransactionalOperator;
+import org.springframework.r2dbc.connection.R2dbcTransactionManager;
+import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @Configuration
 public class DatabaseConfig {
 
-    @Value("${DB_POOL_SIZE:20}") // .env에서 읽어오되 없으면 20 기본값
-    private int dbPoolSize;
-
     @Bean
-    public Scheduler dbScheduler() {
-        // 일꾼 20명을 생성하여 properties에서 설정한 커넥션 20개와 1:1 대응시킴
-        return Schedulers.fromExecutor(Executors.newFixedThreadPool(dbPoolSize));
+    public R2dbcCustomConversions r2dbcCustomConversions(ConnectionFactory connectionFactory) {
+        return R2dbcCustomConversions.of(
+                DialectResolver.getDialect(connectionFactory),
+                List.of(new JsonToStringConverter())
+        );
     }
 
     @Bean
-    public TransactionTemplate transactionTemplate(PlatformTransactionManager transactionManager) {
-        return new TransactionTemplate(transactionManager);
+    public TransactionalOperator transactionalOperator(ConnectionFactory connectionFactory) {
+        return TransactionalOperator.create(new R2dbcTransactionManager(connectionFactory));
+    }
+
+    @ReadingConverter
+    static class JsonToStringConverter implements Converter<Json, String> {
+        @Override
+        public String convert(Json source) {
+            return source.asString();
+        }
     }
 }

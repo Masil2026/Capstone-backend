@@ -7,8 +7,8 @@
 domain/{name}/
 ├── controller/   HTTP 요청/응답, 위임만 담당
 ├── service/      비즈니스 로직 (interface + impl 분리)
-├── repository/   데이터 접근 (JpaRepository 확장)
-└── entity/       JPA 도메인 객체
+├── repository/   데이터 접근 (ReactiveCrudRepository 확장)
+└── entity/       R2DBC 도메인 객체
 global/config/    공통 설정 빈 (DB, Redis, Security, WebClient 등)
 ```
 
@@ -39,44 +39,50 @@ private UserService userService;
 ```
 
 ### Entity 작성
-```
-@Entity
-@Table(name = "users")
+R2DBC 엔티티는 JPA `@Entity` 없이 `@Table`만 사용한다. 새 엔티티 감지를 위해 `Persistable<T>`를 구현한다:
+```java
+@Table("users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)  // 필수
-public class User {
+public class User implements Persistable<String> {
 
     @Id
     private String id;
+
+    @Transient
+    private boolean newEntity;
 
     // 정적 팩터리 메서드로만 생성
     public static User of(String clerkId) {
         User user = new User();
         user.id = clerkId;
+        user.newEntity = true;
         return user;
     }
+
+    @Override public String getId() { return id; }
+    @Override public boolean isNew() { return newEntity; }
 }
 ```
 
-### Reactive + JPA 혼용 패턴 (핵심)
-WebFlux 환경에서 JPA(블로킹)를 사용할 때 반드시 아래 패턴 사용:
-```
-// 올바른 방식 — dbScheduler 스레드풀로 격리
-Mono.fromCallable(() -> userRepository.save(user))
-    .subscribeOn(dbScheduler)
+### R2DBC 네이티브 Reactive 패턴
+R2DBC 리포지토리는 네이티브 리액티브이므로 별도 스케줄러 격리가 불필요하다:
+```java
+// R2DBC — 바로 반환, 블로킹 없음
+return userRepository.save(user);       // Mono<User>
+return userRepository.findById(id);     // Mono<User>
 
-// 절대 금지 — 이벤트 루프 블로킹
-return Mono.just(userRepository.save(user));
-```
-
-`dbScheduler`는 `DatabaseConfig`에서 빈으로 등록된 `Scheduler`:
-```
-// DatabaseConfig.java
-@Bean
-public Scheduler dbScheduler(@Value("${DB_POOL_SIZE:20}") int poolSize) {
-    return Schedulers.fromExecutor(Executors.newFixedThreadPool(poolSize));
+// 복잡한 다단계 트랜잭션 — @Transactional 또는 TransactionalOperator
+@Transactional
+public Mono<Void> complexOperation() {
+    return repository.save(entity1)
+            .flatMap(saved -> repository.save(entity2))
+            .then();
 }
 ```
+
+lazy 평가에 주의: `.then(publisher)` / `.thenMany(publisher)`는 체인 조립 시 즉시 `publisher`를 호출한다.
+구독 시점에 실행되어야 할 경우 `.flatMap(ignored -> publisher)` 또는 `.then(Mono.defer(() -> publisher))`를 사용한다.
 
 ### Controller 응답 형식
 ```
@@ -168,7 +174,8 @@ global/exception/
 ## 4. 테스트 패턴
 
 ### Service 단위 테스트
-```
+R2DBC 리포지토리는 네이티브 리액티브이므로 `dbScheduler` 주입 없이 바로 Mockito로 Mock 가능하다:
+```java
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
 
@@ -178,17 +185,10 @@ class UserServiceImplTest {
     @InjectMocks
     UserServiceImpl userService;
 
-    @BeforeEach
-    void injectScheduler() throws Exception {
-        // 비동기 코드를 동기적으로 테스트하기 위해 immediate() 주입
-        Field f = UserServiceImpl.class.getDeclaredField("dbScheduler");
-        f.setAccessible(true);
-        f.set(userService, Schedulers.immediate());
-    }
-
     @Test
     void 신규유저_회원가입_저장호출() {
-        given(userRepository.findById("new_id")).willReturn(Optional.empty());
+        given(userRepository.existsById("new_id")).willReturn(Mono.just(false));
+        given(userRepository.save(any(User.class))).willReturn(Mono.just(User.of("new_id")));
 
         StepVerifier.create(userService.signup("new_id"))
                 .verifyComplete();
@@ -266,4 +266,3 @@ UserService userService;
 | Config/인프라 | Integration | 실제 Supabase | 실제 Redis |
 
 - 리액티브 반환값은 항상 `StepVerifier`로 검증
-- Scheduler는 단위 테스트에서 `Schedulers.immediate()`로 교체

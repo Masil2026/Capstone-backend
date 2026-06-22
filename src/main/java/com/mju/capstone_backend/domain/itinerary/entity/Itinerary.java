@@ -1,77 +1,107 @@
 package com.mju.capstone_backend.domain.itinerary.entity;
 
-import com.mju.capstone_backend.domain.itinerary.dto.DestinationItem;
-import com.mju.capstone_backend.global.converter.IntegerListConverter;
-import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 import java.util.UUID;
 
-@Entity
-@Table(name = "itineraries")
+@Table("itineraries")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Itinerary {
+public class Itinerary implements Persistable<UUID> {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
     private UUID id;
 
-    @Column(name = "room_id", nullable = false)
     private UUID roomId;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "destinations", columnDefinition = "jsonb", nullable = false)
-    private List<DestinationItem> destinations;
+    /** JSONB 컬럼 — DB에서 String으로 읽힘, 서비스 레이어에서 직렬화/역직렬화 */
+    private String destinations;
 
-    @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
-
-    @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
-
-    @Column(name = "total_days", nullable = false)
     private int totalDays;
-
-    @Column(name = "budget", precision = 12, scale = 2)
     private BigDecimal budget;
-
-    @Column(name = "adult_count", nullable = false)
     private int adultCount;
-
-    @Column(name = "child_count", nullable = false)
     private int childCount;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Convert(converter = IntegerListConverter.class)
-    @Column(name = "child_ages", columnDefinition = "jsonb")
-    private List<Integer> childAges;
+    /** JSONB 컬럼 — DB에서 String으로 읽힘 */
+    private String childAges;
 
-    @Column(name = "status", nullable = false, length = 20)
     private String status;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "day_plans", columnDefinition = "jsonb", nullable = false)
+    /** JSONB 컬럼 — DB에서 String으로 읽힘 */
     private String dayPlans;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
-
-    @Column(name = "updated_at", insertable = false)
     private OffsetDateTime updatedAt;
 
-    @PreUpdate
-    protected void onUpdate() {
+    @Transient
+    private boolean newEntity = false;
+
+    @Override
+    public boolean isNew() {
+        return newEntity;
+    }
+
+    public static Itinerary of(UUID roomId, String destinationsJson,
+                               BigDecimal budget, int adultCount, int childCount, String childAgesJson,
+                               LocalDate startDate, LocalDate endDate) {
+        Itinerary it = new Itinerary();
+        it.id = UUID.randomUUID();
+        it.roomId = roomId;
+        it.destinations = destinationsJson;
+        it.startDate = startDate;
+        it.endDate = endDate;
+        it.totalDays = (int) ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        it.budget = budget;
+        it.adultCount = adultCount;
+        it.childCount = childCount;
+        it.childAges = childAgesJson;
+        it.status = "draft";
+        it.dayPlans = buildInitialDayPlans(startDate, endDate);
+        it.createdAt = OffsetDateTime.now();
+        it.updatedAt = OffsetDateTime.now();
+        it.newEntity = true;
+        return it;
+    }
+
+    public void updateBasicInfo(String destinationsJson, BigDecimal budget,
+                                Integer adultCount, Integer childCount, String childAgesJson,
+                                String updatedDayPlans,
+                                LocalDate effectiveStart, LocalDate effectiveEnd) {
+        if (destinationsJson != null) {
+            this.destinations = destinationsJson;
+            this.startDate = effectiveStart;
+            this.endDate = effectiveEnd;
+            this.totalDays = (int) ChronoUnit.DAYS.between(effectiveStart, effectiveEnd) + 1;
+        }
+        if (budget != null) this.budget = budget;
+        if (adultCount != null) this.adultCount = adultCount;
+        if (childCount != null) {
+            this.childCount = childCount;
+            this.childAges = childAgesJson;
+        }
+        if (updatedDayPlans != null) this.dayPlans = updatedDayPlans;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void updateDayPlans(String dayPlans) {
+        this.dayPlans = dayPlans;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void updateStatus(String status) {
+        this.status = status;
         this.updatedAt = OffsetDateTime.now();
     }
 
@@ -87,48 +117,5 @@ public class Itinerary {
         }
         json.append("}");
         return json.toString();
-    }
-
-    public void updateBasicInfo(List<DestinationItem> destinations, BigDecimal budget,
-                                Integer adultCount, Integer childCount, List<Integer> childAges,
-                                String updatedDayPlans) {
-        if (destinations != null) {
-            this.destinations = destinations;
-            this.startDate = destinations.get(0).startDate();
-            this.endDate = destinations.get(destinations.size() - 1).endDate();
-            this.totalDays = (int) ChronoUnit.DAYS.between(this.startDate, this.endDate) + 1;
-        }
-        if (budget != null) this.budget = budget;
-        if (adultCount != null) this.adultCount = adultCount;
-        if (childCount != null) {
-            this.childCount = childCount;
-            this.childAges = childAges;
-        }
-        if (updatedDayPlans != null) this.dayPlans = updatedDayPlans;
-    }
-
-    public void updateDayPlans(String dayPlans) {
-        this.dayPlans = dayPlans;
-    }
-
-    public void updateStatus(String status) {
-        this.status = status;
-    }
-
-    public static Itinerary of(UUID roomId, List<DestinationItem> destinations,
-                               BigDecimal budget, int adultCount, int childCount, List<Integer> childAges) {
-        Itinerary itinerary = new Itinerary();
-        itinerary.roomId = roomId;
-        itinerary.destinations = destinations;
-        itinerary.startDate = destinations.get(0).startDate();
-        itinerary.endDate = destinations.get(destinations.size() - 1).endDate();
-        itinerary.totalDays = (int) ChronoUnit.DAYS.between(itinerary.startDate, itinerary.endDate) + 1;
-        itinerary.budget = budget;
-        itinerary.adultCount = adultCount;
-        itinerary.childCount = childCount;
-        itinerary.childAges = childAges;
-        itinerary.status = "draft";
-        itinerary.dayPlans = buildInitialDayPlans(itinerary.startDate, itinerary.endDate);
-        return itinerary;
     }
 }
