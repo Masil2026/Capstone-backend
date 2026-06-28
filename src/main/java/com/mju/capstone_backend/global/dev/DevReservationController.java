@@ -8,9 +8,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -59,12 +59,13 @@ public class DevReservationController {
                         }
                         """;
 
-        private static final String CAR_RENTAL_DETAIL = """
+        private static final String ACCOMMODATION_DETAIL_2 = """
                         {
-                          "company": "Hertz",
-                          "car_model": "Toyota Camry",
-                          "pickup":  {"location": "NRT T1", "datetime": "2026-05-01T13:00:00"},
-                          "dropoff": {"location": "NRT T1", "datetime": "2026-05-03T11:00:00"}
+                          "hotel_name": "신주쿠 그랜드 호텔",
+                          "room_type": "스탠다드 트윈",
+                          "check_in": "2026-05-03",
+                          "check_out": "2026-05-05",
+                          "guests": 2
                         }
                         """;
 
@@ -77,39 +78,32 @@ public class DevReservationController {
         }
 
         private final ReservationRepository reservationRepository;
-        private final Scheduler dbScheduler;
 
-        @Operation(summary = "[DEV] 테스트 예약 데이터 생성", description = "itineraryId에 항공·숙소·렌트카 샘플 예약 3건을 생성하고 생성된 ID 목록을 반환합니다.")
+        @Operation(summary = "[DEV] 테스트 예약 데이터 생성", description = "itineraryId에 항공·숙소 샘플 예약 3건을 생성하고 생성된 ID 목록을 반환합니다.")
         @PostMapping("/seed")
         @ResponseStatus(HttpStatus.CREATED)
         public Mono<Map<String, Object>> seed(@RequestBody SeedRequest request) {
-                return Mono.fromCallable(() -> {
-                        OffsetDateTime now = OffsetDateTime.now();
-                        List<Reservation> samples = List.of(
-                                        Reservation.of(request.itineraryId(), "flight", "confirmed", "ai",
-                                                        null, "KE-20260501-001", FLIGHT_DETAIL,
-                                                        new BigDecimal("350000"), "KRW", now),
-                                        Reservation.of(request.itineraryId(), "accommodation", "confirmed", "user",
-                                                        null, "LOTTE-20260501", ACCOMMODATION_DETAIL,
-                                                        new BigDecimal("180000"), "KRW", now),
-                                        Reservation.of(request.itineraryId(), "car_rental", "confirmed", "ai",
-                                                        null, "HERTZ-20260501", CAR_RENTAL_DETAIL,
-                                                        new BigDecimal("95000"), "KRW", now));
-                        List<UUID> ids = reservationRepository.saveAll(samples)
-                                        .stream()
-                                        .map(Reservation::getId)
-                                        .toList();
-                        return Map.of("itineraryId", request.itineraryId(), "reservationIds", ids);
-                }).subscribeOn(dbScheduler);
+                OffsetDateTime now = OffsetDateTime.now();
+                List<Reservation> samples = List.of(
+                                Reservation.of(request.itineraryId(), "flight", "confirmed", "ai",
+                                                null, "KE-20260501-001", FLIGHT_DETAIL,
+                                                new BigDecimal("350000"), "KRW", now),
+                                Reservation.of(request.itineraryId(), "accommodation", "confirmed", "user",
+                                                null, "LOTTE-20260501", ACCOMMODATION_DETAIL,
+                                                new BigDecimal("180000"), "KRW", now),
+                                Reservation.of(request.itineraryId(), "accommodation", "confirmed", "user",
+                                                null, "SHINJUKU-20260503", ACCOMMODATION_DETAIL_2,
+                                                new BigDecimal("120000"), "KRW", now));
+                return reservationRepository.saveAll(samples)
+                                .map(Reservation::getId)
+                                .collectList()
+                                .map(ids -> Map.of("itineraryId", request.itineraryId(), "reservationIds", ids));
         }
 
         @Operation(summary = "[DEV] 테스트 예약 데이터 삭제", description = "itineraryId에 연결된 모든 예약을 삭제합니다.")
         @DeleteMapping("/seed/{itineraryId}")
-        @ResponseStatus(HttpStatus.NO_CONTENT)
-        public Mono<Void> deleteSeed(@PathVariable UUID itineraryId) {
-                return Mono.fromCallable(() -> {
-                        reservationRepository.deleteAllByItineraryId(itineraryId);
-                        return null;
-                }).subscribeOn(dbScheduler).then();
+        public Mono<ResponseEntity<Void>> deleteSeed(@PathVariable UUID itineraryId) {
+                return reservationRepository.deleteAllByItineraryId(itineraryId)
+                        .thenReturn(ResponseEntity.<Void>noContent().<Void>build());
         }
 }

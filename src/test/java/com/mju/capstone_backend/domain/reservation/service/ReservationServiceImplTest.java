@@ -13,7 +13,6 @@ import com.mju.capstone_backend.domain.reservation.dto.PatchReservationRequest;
 import com.mju.capstone_backend.domain.reservation.entity.Reservation;
 import com.mju.capstone_backend.domain.reservation.repository.ReservationRepository;
 import com.mju.capstone_backend.domain.user.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,14 +21,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import reactor.core.scheduler.Schedulers;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -63,19 +62,12 @@ class ReservationServiceImplTest {
         private static final UUID ITINERARY_ID = UUID.randomUUID();
         private static final UUID ROOM_ID = UUID.randomUUID();
 
-        @BeforeEach
-        void injectScheduler() throws Exception {
-                var field = ReservationServiceImpl.class.getDeclaredField("dbScheduler");
-                field.setAccessible(true);
-                field.set(reservationService, Schedulers.immediate());
-        }
-
         // ─── 사용자 검증 ──────────────────────────────────────────────────────────
 
         @Test
         @DisplayName("존재하지 않는 사용자 - 404 예외")
         void getReservations_userNotFound_throws404() {
-                when(userRepository.existsById(CLERK_ID)).thenReturn(false);
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(false));
 
                 StepVerifier.create(reservationService.getReservations(CLERK_ID, null, null))
                                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
@@ -90,7 +82,7 @@ class ReservationServiceImplTest {
         @Test
         @DisplayName("잘못된 type 파라미터 - 400 예외")
         void getReservations_invalidType_throws400() {
-                when(userRepository.existsById(CLERK_ID)).thenReturn(true);
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
 
                 StepVerifier.create(reservationService.getReservations(CLERK_ID, "invalid", null))
                                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
@@ -101,7 +93,7 @@ class ReservationServiceImplTest {
         @Test
         @DisplayName("잘못된 status 파라미터 - 400 예외")
         void getReservations_invalidStatus_throws400() {
-                when(userRepository.existsById(CLERK_ID)).thenReturn(true);
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
 
                 StepVerifier.create(reservationService.getReservations(CLERK_ID, null, "invalid"))
                                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
@@ -116,9 +108,9 @@ class ReservationServiceImplTest {
         void getReservations_noFilters_returnsAll() throws Exception {
                 Reservation mockReservation = buildMockReservation("flight", "confirmed");
 
-                when(userRepository.existsById(CLERK_ID)).thenReturn(true);
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
                 when(reservationRepository.findByClerkIdWithFilters(CLERK_ID, null, null))
-                                .thenReturn(List.of(mockReservation));
+                                .thenReturn(Flux.just(mockReservation));
                 when(objectMapper.readValue(anyString(), any(TypeReference.class)))
                                 .thenReturn(Map.of());
 
@@ -136,9 +128,9 @@ class ReservationServiceImplTest {
         void getReservations_withTypeFilter_passedToRepository() throws Exception {
                 Reservation mockReservation = buildMockReservation("accommodation", "confirmed");
 
-                when(userRepository.existsById(CLERK_ID)).thenReturn(true);
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
                 when(reservationRepository.findByClerkIdWithFilters(CLERK_ID, "accommodation", null))
-                                .thenReturn(List.of(mockReservation));
+                                .thenReturn(Flux.just(mockReservation));
                 when(objectMapper.readValue(anyString(), any(TypeReference.class)))
                                 .thenReturn(Map.of());
 
@@ -152,9 +144,9 @@ class ReservationServiceImplTest {
         @Test
         @DisplayName("결과 없음 - 빈 목록 반환")
         void getReservations_noResults_returnsEmptyList() {
-                when(userRepository.existsById(CLERK_ID)).thenReturn(true);
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
                 when(reservationRepository.findByClerkIdWithFilters(CLERK_ID, null, null))
-                                .thenReturn(List.of());
+                                .thenReturn(Flux.empty());
 
                 StepVerifier.create(reservationService.getReservations(CLERK_ID, null, null))
                                 .assertNext(response -> assertThat(response.reservations()).isEmpty())
@@ -166,33 +158,33 @@ class ReservationServiceImplTest {
         @Test
         @DisplayName("예약 생성 - 존재하지 않는 사용자 - 404 예외")
         void createReservation_userNotFound_throws404() {
-                when(userRepository.existsById(CLERK_ID)).thenReturn(false);
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(false));
 
                 StepVerifier.create(reservationService.createReservation(CLERK_ID, buildCreateRequest("flight", "ai")))
                                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
                                                 && rse.getStatusCode() == HttpStatus.NOT_FOUND)
                                 .verify();
 
-                verify(itineraryRepository, never()).findById(any());
+                verify(itineraryRepository, never()).findById(any(UUID.class));
         }
 
         @Test
         @DisplayName("예약 생성 - 잘못된 type - 400 예외")
         void createReservation_invalidType_throws400() {
-                when(userRepository.existsById(CLERK_ID)).thenReturn(true);
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
 
                 StepVerifier.create(reservationService.createReservation(CLERK_ID, buildCreateRequest("train", "ai")))
                                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
                                                 && rse.getStatusCode() == HttpStatus.BAD_REQUEST
                                                 && rse.getReason().equals(
-                                                                "type must be one of: flight, accommodation, car_rental."))
+                                                                "type must be one of: flight, accommodation."))
                                 .verify();
         }
 
         @Test
         @DisplayName("예약 생성 - 잘못된 bookedBy - 400 예외")
         void createReservation_invalidBookedBy_throws400() {
-                when(userRepository.existsById(CLERK_ID)).thenReturn(true);
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
 
                 StepVerifier.create(reservationService.createReservation(CLERK_ID, buildCreateRequest("flight", "bot")))
                                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
@@ -206,8 +198,8 @@ class ReservationServiceImplTest {
         @Test
         @DisplayName("예약 생성 - 존재하지 않는 itinerary - 404 예외")
         void createReservation_itineraryNotFound_throws404() {
-                when(userRepository.existsById(CLERK_ID)).thenReturn(true);
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.empty());
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.empty());
 
                 StepVerifier.create(reservationService.createReservation(CLERK_ID, buildCreateRequest("flight", "ai")))
                                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
@@ -224,9 +216,9 @@ class ReservationServiceImplTest {
                 ChatRoom otherChatRoom = mock(ChatRoom.class);
                 when(otherChatRoom.getClerkId()).thenReturn("user_otherClerkId");
 
-                when(userRepository.existsById(CLERK_ID)).thenReturn(true);
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(otherChatRoom));
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(otherChatRoom));
 
                 StepVerifier.create(reservationService.createReservation(CLERK_ID, buildCreateRequest("flight", "ai")))
                                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
@@ -240,9 +232,9 @@ class ReservationServiceImplTest {
                 Itinerary mockItinerary = mock(Itinerary.class);
                 when(mockItinerary.getRoomId()).thenReturn(ROOM_ID);
 
-                when(userRepository.existsById(CLERK_ID)).thenReturn(true);
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.empty());
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.empty());
 
                 StepVerifier.create(reservationService.createReservation(CLERK_ID, buildCreateRequest("flight", "ai")))
                                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
@@ -267,11 +259,11 @@ class ReservationServiceImplTest {
                 when(mockReservation.getStatus()).thenReturn("confirmed");
                 when(mockReservation.getCreatedAt()).thenReturn(OffsetDateTime.now());
 
-                when(userRepository.existsById(CLERK_ID)).thenReturn(true);
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(mockChatRoom));
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(mockChatRoom));
                 when(objectMapper.writeValueAsString(any())).thenReturn("{\"airline\":\"대한항공\"}");
-                when(reservationRepository.save(any())).thenReturn(mockReservation);
+                when(reservationRepository.save(any())).thenReturn(Mono.just(mockReservation));
 
                 StepVerifier.create(reservationService.createReservation(CLERK_ID, buildCreateRequest("flight", "ai")))
                                 .assertNext(response -> {
@@ -347,22 +339,6 @@ class ReservationServiceImplTest {
         }
 
         @Test
-        @DisplayName("car_rental - pickup 내 필수 필드 누락 - 400 예외")
-        void createReservation_carRentalMissingPickupField_throws400() {
-                setupOwnerMocks();
-                Map<String, Object> invalidDetail = new java.util.HashMap<>(buildValidDetail("car_rental"));
-                invalidDetail.put("pickup", Map.of("location", "NRT T1"));
-                CreateReservationRequest request = new CreateReservationRequest(
-                                ITINERARY_ID, "car_rental", "ai", null, null, invalidDetail, null, null, null);
-
-                StepVerifier.create(reservationService.createReservation(CLERK_ID, request))
-                                .expectErrorMatches(e -> e instanceof ResponseStatusException rse
-                                                && rse.getStatusCode() == HttpStatus.BAD_REQUEST
-                                                && rse.getReason().contains("pickup.datetime"))
-                                .verify();
-        }
-
-        @Test
         @DisplayName("flight - 중첩 필드 빈 문자열 - 400 예외")
         void createReservation_flightBlankNestedField_throws400() {
                 setupOwnerMocks();
@@ -395,6 +371,7 @@ class ReservationServiceImplTest {
         @Test
         @DisplayName("예약 수정 - 잘못된 status - 400 예외")
         void updateReservation_invalidStatus_throws400() {
+                setupUpdateOwnerMocks("confirmed");
                 PatchReservationRequest request = new PatchReservationRequest("invalid", null, null, null, null, null);
 
                 StepVerifier.create(reservationService.updateReservation(CLERK_ID, RESERVATION_ID, request))
@@ -408,6 +385,7 @@ class ReservationServiceImplTest {
         @Test
         @DisplayName("예약 수정 - status: confirmed (허용 불가) - 400 예외")
         void updateReservation_confirmedStatus_throws400() {
+                setupUpdateOwnerMocks("confirmed");
                 PatchReservationRequest request = new PatchReservationRequest("confirmed", null, null, null, null, null);
 
                 StepVerifier.create(reservationService.updateReservation(CLERK_ID, RESERVATION_ID, request))
@@ -470,9 +448,9 @@ class ReservationServiceImplTest {
                 ChatRoom mockChatRoom = mock(ChatRoom.class);
                 when(mockChatRoom.getClerkId()).thenReturn(CLERK_ID);
 
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(mockReservation));
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(mockChatRoom));
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.just(mockReservation));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(mockChatRoom));
 
                 PatchReservationRequest request = new PatchReservationRequest(
                         null, Map.of("airline", "대한항공"), null, null, null, null);
@@ -495,9 +473,9 @@ class ReservationServiceImplTest {
                 ChatRoom mockChatRoom = mock(ChatRoom.class);
                 when(mockChatRoom.getClerkId()).thenReturn(CLERK_ID);
 
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(mockReservation));
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(mockChatRoom));
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.just(mockReservation));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(mockChatRoom));
 
                 Map<String, Object> badDetail = new java.util.HashMap<>(buildValidDetail("flight"));
                 badDetail.put("departure", "ICN");
@@ -523,9 +501,9 @@ class ReservationServiceImplTest {
                 ChatRoom mockChatRoom = mock(ChatRoom.class);
                 when(mockChatRoom.getClerkId()).thenReturn(CLERK_ID);
 
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(mockReservation));
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(mockChatRoom));
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.just(mockReservation));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(mockChatRoom));
 
                 Map<String, Object> badDetail = new java.util.HashMap<>(buildValidDetail("flight"));
                 badDetail.put("arrival", Map.of("airport", "", "datetime", "2026-05-01T11:30:00"));
@@ -558,7 +536,7 @@ class ReservationServiceImplTest {
         @Test
         @DisplayName("예약 수정 - 존재하지 않는 예약 - 404 예외")
         void updateReservation_reservationNotFound_throws404() {
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.empty());
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.empty());
 
                 StepVerifier.create(reservationService.updateReservation(CLERK_ID, RESERVATION_ID,
                                 new PatchReservationRequest("cancelled", null, null, null, null, null)))
@@ -574,8 +552,8 @@ class ReservationServiceImplTest {
                 Reservation mockReservation = mock(Reservation.class);
                 when(mockReservation.getItineraryId()).thenReturn(ITINERARY_ID);
 
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(mockReservation));
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.empty());
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.just(mockReservation));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.empty());
 
                 StepVerifier.create(reservationService.updateReservation(CLERK_ID, RESERVATION_ID,
                                 new PatchReservationRequest("cancelled", null, null, null, null, OffsetDateTime.now())))
@@ -593,9 +571,9 @@ class ReservationServiceImplTest {
                 Itinerary mockItinerary = mock(Itinerary.class);
                 when(mockItinerary.getRoomId()).thenReturn(ROOM_ID);
 
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(mockReservation));
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.empty());
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.just(mockReservation));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.empty());
 
                 StepVerifier.create(reservationService.updateReservation(CLERK_ID, RESERVATION_ID,
                                 new PatchReservationRequest("cancelled", null, null, null, null, OffsetDateTime.now())))
@@ -615,9 +593,9 @@ class ReservationServiceImplTest {
                 ChatRoom otherChatRoom = mock(ChatRoom.class);
                 when(otherChatRoom.getClerkId()).thenReturn("user_otherClerkId");
 
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(mockReservation));
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(otherChatRoom));
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.just(mockReservation));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(otherChatRoom));
 
                 StepVerifier.create(reservationService.updateReservation(CLERK_ID, RESERVATION_ID,
                                 new PatchReservationRequest("cancelled", null, null, null, null, null)))
@@ -645,10 +623,10 @@ class ReservationServiceImplTest {
                 ChatRoom mockChatRoom = mock(ChatRoom.class);
                 when(mockChatRoom.getClerkId()).thenReturn(CLERK_ID);
 
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(existing));
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(mockChatRoom));
-                when(reservationRepository.save(any())).thenReturn(saved);
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.just(existing));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(mockChatRoom));
+                when(reservationRepository.save(any())).thenReturn(Mono.just(saved));
 
                 StepVerifier.create(reservationService.updateReservation(CLERK_ID, RESERVATION_ID,
                                 new PatchReservationRequest("cancelled", null, null, null, null, cancelledAt)))
@@ -683,11 +661,11 @@ class ReservationServiceImplTest {
                 ChatRoom mockChatRoom = mock(ChatRoom.class);
                 when(mockChatRoom.getClerkId()).thenReturn(CLERK_ID);
 
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(existing));
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(mockChatRoom));
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.just(existing));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(mockChatRoom));
                 when(objectMapper.writeValueAsString(any())).thenReturn("{}");
-                when(reservationRepository.save(any())).thenReturn(saved);
+                when(reservationRepository.save(any())).thenReturn(Mono.just(saved));
 
                 StepVerifier.create(reservationService.updateReservation(CLERK_ID, RESERVATION_ID,
                                 new PatchReservationRequest("changed", buildValidDetail("flight"),
@@ -710,7 +688,7 @@ class ReservationServiceImplTest {
         @Test
         @DisplayName("예약 삭제 - 존재하지 않는 예약 - 404 예외")
         void deleteReservation_reservationNotFound_throws404() {
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.empty());
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.empty());
 
                 StepVerifier.create(reservationService.deleteReservation(CLERK_ID, RESERVATION_ID))
                                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
@@ -725,8 +703,8 @@ class ReservationServiceImplTest {
                 Reservation mockReservation = mock(Reservation.class);
                 when(mockReservation.getItineraryId()).thenReturn(ITINERARY_ID);
 
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(mockReservation));
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.empty());
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.just(mockReservation));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.empty());
 
                 StepVerifier.create(reservationService.deleteReservation(CLERK_ID, RESERVATION_ID))
                                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
@@ -745,9 +723,9 @@ class ReservationServiceImplTest {
                 Itinerary mockItinerary = mock(Itinerary.class);
                 when(mockItinerary.getRoomId()).thenReturn(ROOM_ID);
 
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(mockReservation));
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.empty());
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.just(mockReservation));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.empty());
 
                 StepVerifier.create(reservationService.deleteReservation(CLERK_ID, RESERVATION_ID))
                                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
@@ -768,9 +746,9 @@ class ReservationServiceImplTest {
                 ChatRoom otherChatRoom = mock(ChatRoom.class);
                 when(otherChatRoom.getClerkId()).thenReturn("user_otherClerkId");
 
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(mockReservation));
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(otherChatRoom));
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.just(mockReservation));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(otherChatRoom));
 
                 StepVerifier.create(reservationService.deleteReservation(CLERK_ID, RESERVATION_ID))
                                 .expectErrorMatches(e -> e instanceof ResponseStatusException rse
@@ -790,9 +768,10 @@ class ReservationServiceImplTest {
                 ChatRoom mockChatRoom = mock(ChatRoom.class);
                 when(mockChatRoom.getClerkId()).thenReturn(CLERK_ID);
 
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(mockReservation));
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(mockChatRoom));
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.just(mockReservation));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(mockChatRoom));
+                when(reservationRepository.delete(mockReservation)).thenReturn(Mono.empty());
 
                 StepVerifier.create(reservationService.deleteReservation(CLERK_ID, RESERVATION_ID))
                                 .assertNext(response -> {
@@ -834,11 +813,6 @@ class ReservationServiceImplTest {
                                         "check_in", "2026-05-01",
                                         "check_out", "2026-05-03",
                                         "guests", 2);
-                        case "car_rental" -> Map.of(
-                                        "company", "Hertz",
-                                        "car_model", "Toyota Camry",
-                                        "pickup", Map.of("location", "NRT T1", "datetime", "2026-05-01T13:00:00"),
-                                        "dropoff", Map.of("location", "NRT T1", "datetime", "2026-05-03T11:00:00"));
                         default -> Map.of();
                 };
         }
@@ -852,9 +826,9 @@ class ReservationServiceImplTest {
                 ChatRoom mockChatRoom = mock(ChatRoom.class);
                 when(mockChatRoom.getClerkId()).thenReturn(CLERK_ID);
 
-                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(mockReservation));
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(mockChatRoom));
+                when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Mono.just(mockReservation));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(mockChatRoom));
         }
 
         private void setupOwnerMocks() {
@@ -863,9 +837,9 @@ class ReservationServiceImplTest {
                 ChatRoom mockChatRoom = mock(ChatRoom.class);
                 when(mockChatRoom.getClerkId()).thenReturn(CLERK_ID);
 
-                when(userRepository.existsById(CLERK_ID)).thenReturn(true);
-                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Optional.of(mockItinerary));
-                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Optional.of(mockChatRoom));
+                when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
+                when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(mockItinerary));
+                when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(mockChatRoom));
         }
 
         private Reservation buildMockReservation(String type, String status) {

@@ -1,32 +1,25 @@
 package com.mju.capstone_backend.domain.chatmessage.repository;
 
 import com.mju.capstone_backend.domain.chatmessage.entity.ChatMessage;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 
-public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> {
+public interface ChatMessageRepository extends ReactiveCrudRepository<ChatMessage, UUID> {
 
-    List<ChatMessage> findByRoomIdOrderByCreatedAtDesc(UUID roomId, Pageable pageable);
+    @Query("SELECT * FROM chat_messages WHERE room_id = :roomId ORDER BY created_at DESC LIMIT :limit")
+    Flux<ChatMessage> findByRoomIdOrderByCreatedAtDesc(UUID roomId, int limit);
 
-    List<ChatMessage> findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(UUID roomId, OffsetDateTime cursor, Pageable pageable);
+    @Query("SELECT * FROM chat_messages WHERE room_id = :roomId AND created_at < :cursor ORDER BY created_at DESC LIMIT :limit")
+    Flux<ChatMessage> findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(UUID roomId, OffsetDateTime cursor, int limit);
 
-    @Modifying
-    @Transactional
-    @Query(value = "UPDATE chat_messages SET embedding = CAST(:embedding AS vector) WHERE id = :id",
-            nativeQuery = true)
-    void updateEmbedding(@Param("id") UUID id, @Param("embedding") String embedding);
+    @Query("UPDATE chat_messages SET embedding = CAST(:embedding AS vector) WHERE id = :id")
+    Mono<Void> updateEmbedding(UUID id, String embedding);
 
-    @Modifying
-    @Transactional
-    @Query(value = "UPDATE chat_messages SET action_result = CAST(:actionResult AS jsonb) WHERE id = :id",
-            nativeQuery = true)
-    void updateActionResult(@Param("id") UUID id, @Param("actionResult") String actionResult);
+    @Query("UPDATE chat_messages SET action_result = CAST(:actionResult AS jsonb) WHERE id = :id")
+    Mono<Void> updateActionResult(UUID id, String actionResult);
 }

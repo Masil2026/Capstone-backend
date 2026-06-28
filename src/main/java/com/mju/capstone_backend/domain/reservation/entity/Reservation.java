@@ -1,107 +1,82 @@
 package com.mju.capstone_backend.domain.reservation.entity;
 
-import jakarta.persistence.*;
+import io.r2dbc.postgresql.codec.Json;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-@Entity
-@Table(name = "reservations")
+@Table("reservations")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Reservation {
+public class Reservation implements Persistable<UUID> {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
     private UUID id;
 
-    @Column(name = "itinerary_id", nullable = false)
     private UUID itineraryId;
-
-    @Column(name = "type", nullable = false, length = 20)
     private String type;
-
-    @Column(name = "status", nullable = false, length = 20)
     private String status;
-
-    @Column(name = "booked_by", nullable = false, length = 10)
     private String bookedBy;
-
-    @Column(name = "booking_url")
     private String bookingUrl;
-
-    @Column(name = "external_ref_id")
     private String externalRefId;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "detail", columnDefinition = "jsonb", nullable = false)
-    private String detail;
+    @Getter(AccessLevel.NONE)
+    private Json detail;
 
-    @Column(name = "total_price", precision = 12, scale = 2)
     private BigDecimal totalPrice;
-
-    @Column(name = "currency", length = 3)
     private String currency;
-
-    @Column(name = "reserved_at")
     private OffsetDateTime reservedAt;
-
-    @Column(name = "cancelled_at")
     private OffsetDateTime cancelledAt;
-
-    @CreationTimestamp
-    @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
 
+    @Transient
+    private boolean newEntity = false;
+
+    @Override
+    public boolean isNew() {
+        return newEntity;
+    }
+
+    public String getDetail() { return detail != null ? detail.asString() : null; }
+
     public static Reservation of(UUID itineraryId, String type, String status, String bookedBy,
-            String bookingUrl, String externalRefId, String detail,
-            BigDecimal totalPrice, String currency, OffsetDateTime reservedAt) {
+                                 String bookingUrl, String externalRefId, String detail,
+                                 BigDecimal totalPrice, String currency, OffsetDateTime reservedAt) {
         Reservation r = new Reservation();
+        r.id = UUID.randomUUID();
         r.itineraryId = itineraryId;
         r.type = type;
         r.status = status;
         r.bookedBy = bookedBy;
         r.bookingUrl = bookingUrl;
         r.externalRefId = externalRefId;
-        r.detail = detail;
+        r.detail = detail != null ? Json.of(detail) : null;
         r.totalPrice = totalPrice;
         r.currency = currency;
         r.reservedAt = reservedAt;
+        r.createdAt = OffsetDateTime.now();
         r.updatedAt = OffsetDateTime.now();
+        r.newEntity = true;
         return r;
     }
 
     public void update(String status, String detail, BigDecimal totalPrice,
-            String currency, OffsetDateTime reservedAt, OffsetDateTime cancelledAt) {
-        if (status != null)
-            this.status = status;
-        if (detail != null)
-            this.detail = detail;
-        if (totalPrice != null)
-            this.totalPrice = totalPrice;
-        if (currency != null)
-            this.currency = currency;
-        if (reservedAt != null)
-            this.reservedAt = reservedAt;
-        if (cancelledAt != null)
-            this.cancelledAt = cancelledAt;
-    }
-
-    @PreUpdate
-    void onUpdate() {
+                       String currency, OffsetDateTime reservedAt, OffsetDateTime cancelledAt) {
+        if (status != null) this.status = status;
+        if (detail != null) this.detail = Json.of(detail);
+        if (totalPrice != null) this.totalPrice = totalPrice;
+        if (currency != null) this.currency = currency;
+        if (reservedAt != null) this.reservedAt = reservedAt;
+        if (cancelledAt != null) this.cancelledAt = cancelledAt;
         this.updatedAt = OffsetDateTime.now();
     }
 }

@@ -21,15 +21,13 @@ import com.mju.capstone_backend.domain.reservation.entity.Reservation;
 import com.mju.capstone_backend.domain.reservation.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -52,58 +50,51 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     private final ItineraryLogRepository itineraryLogRepository;
     private final ReservationRepository reservationRepository;
     private final FastApiChatClient fastApiChatClient;
-    private final TransactionTemplate transactionTemplate;
+    private final TransactionalOperator transactionalOperator;
     private final ObjectMapper objectMapper;
-    private final Scheduler dbScheduler;
+    private final ItineraryServiceImpl itineraryServiceHelper;
 
     @Override
     public Mono<GetChatRoomMessagesResponse> getMessages(String clerkId, UUID roomId, OffsetDateTime cursor, int limit) {
-        return Mono.fromCallable(() -> {
-            ChatRoom chatRoom = chatRoomRepository.findById(roomId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chat room not found."));
+        return chatRoomRepository.findById(roomId)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Chat room not found.")))
+                .flatMap(chatRoom -> {
+                    if (!chatRoom.getClerkId().equals(clerkId)) {
+                        return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN,
+                                "You do not have permission to access this chat room."));
+                    }
+                    if (limit < 1 || limit > 100) {
+                        return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                "limit must be between 1 and 100."));
+                    }
 
-            if (!chatRoom.getClerkId().equals(clerkId)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "You do not have permission to access this chat room.");
-            }
+                    Flux<ChatMessage> fetched = cursor == null
+                            ? chatMessageRepository.findByRoomIdOrderByCreatedAtDesc(roomId, limit + 1)
+                            : chatMessageRepository.findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(roomId, cursor, limit + 1);
 
-            if (limit < 1 || limit > 100) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "limit must be between 1 and 100.");
-            }
+                    return fetched.collectList().map(messages -> {
+                        boolean hasMore = messages.size() > limit;
+                        List<ChatMessage> page = hasMore ? messages.subList(0, limit) : messages;
 
-            PageRequest pageRequest = PageRequest.of(0, limit + 1);
-            List<ChatMessage> fetched = cursor == null
-                    ? chatMessageRepository.findByRoomIdOrderByCreatedAtDesc(roomId, pageRequest)
-                    : chatMessageRepository.findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(roomId, cursor, pageRequest);
+                        List<GetChatRoomMessagesResponse.MessageItem> items = page.stream()
+                                .map(msg -> {
+                                    Object actionResult = null;
+                                    if (msg.getActionResult() != null) {
+                                        try {
+                                            actionResult = objectMapper.readValue(msg.getActionResult(), Object.class);
+                                        } catch (Exception e) {
+                                            log.warn("Failed to parse action_result for messageId={}: {}", msg.getId(), e.getMessage());
+                                        }
+                                    }
+                                    return new GetChatRoomMessagesResponse.MessageItem(
+                                            msg.getId(), msg.getRole(), msg.getContent(), actionResult, msg.getCreatedAt());
+                                })
+                                .toList();
 
-            boolean hasMore = fetched.size() > limit;
-            List<ChatMessage> page = hasMore ? fetched.subList(0, limit) : fetched;
-
-            List<GetChatRoomMessagesResponse.MessageItem> items = page.stream()
-                    .map(msg -> {
-                        Object actionResult = null;
-                        if (msg.getActionResult() != null) {
-                            try {
-                                actionResult = objectMapper.readValue(msg.getActionResult(), Object.class);
-                            } catch (Exception e) {
-                                log.warn("Failed to parse action_result for messageId={}: {}", msg.getId(), e.getMessage());
-                            }
-                        }
-                        return new GetChatRoomMessagesResponse.MessageItem(
-                                msg.getId(),
-                                msg.getRole(),
-                                msg.getContent(),
-                                actionResult,
-                                msg.getCreatedAt()
-                        );
-                    })
-                    .toList();
-
-            OffsetDateTime nextCursor = hasMore ? page.get(page.size() - 1).getCreatedAt() : null;
-
-            return new GetChatRoomMessagesResponse(roomId, items, nextCursor, hasMore);
-        }).subscribeOn(dbScheduler)
+                        OffsetDateTime nextCursor = hasMore ? page.get(page.size() - 1).getCreatedAt() : null;
+                        return new GetChatRoomMessagesResponse(roomId, items, nextCursor, hasMore);
+                    });
+                })
                 .onErrorMap(
                         e -> !(e instanceof ResponseStatusException),
                         e -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to fetch messages.")
@@ -112,439 +103,445 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     @Override
     public Flux<ServerSentEvent<Object>> sendMessage(String clerkId, UUID roomId, String content) {
-        return Mono.fromCallable(() -> {
-            ChatRoom chatRoom = chatRoomRepository.findById(roomId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chat room not found."));
-            if (!chatRoom.getClerkId().equals(clerkId))
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "You do not have permission to access this chat room.");
-            return chatRoom;
-        }).subscribeOn(dbScheduler)
-        .flatMapMany(chatRoom -> {
-            return fastApiChatClient.stream(roomId, content)
-                    .concatMap(event -> switch (event) {
-                        case ChatStreamEvent.Chunk chunk -> Mono.<ServerSentEvent<Object>>just(
-                                ServerSentEvent.<Object>builder()
-                                        .event("chunk")
-                                        .data(new MessageChunkResponse(chunk.content()))
-                                        .build()
-                        );
-                        case ChatStreamEvent.Done done -> Mono.fromCallable(
-                                () -> processAndSave(chatRoom, content, done.payload())
-                        ).subscribeOn(dbScheduler)
-                        .map(response -> {
-                            try {
-                                String json = objectMapper.writerWithDefaultPrettyPrinter()
-                                        .writeValueAsString(response);
-                                return ServerSentEvent.<Object>builder()
-                                        .event("done")
-                                        .data(json)
-                                        .build();
-                            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-                                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                                        "Failed to serialize done payload.");
-                            }
-                        });
-                    });
-        })
-        .onErrorResume(e -> {
-            log.error("SSE stream error for roomId={}: {}", roomId, e.getMessage(), e);
-            String message;
-            int status;
-            if (e instanceof ResponseStatusException rse) {
-                message = rse.getReason() != null ? rse.getReason() : "An error occurred.";
-                status = rse.getStatusCode().value();
-            } else {
-                message = "Failed to process AI response.";
-                status = 500;
-            }
-            return Flux.just(ServerSentEvent.<Object>builder()
-                    .event("error")
-                    .data(Map.of("status", status, "message", message))
-                    .build());
-        });
+        return chatRoomRepository.findById(roomId)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Chat room not found.")))
+                .flatMap(chatRoom -> {
+                    if (!chatRoom.getClerkId().equals(clerkId)) {
+                        return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN,
+                                "You do not have permission to access this chat room."));
+                    }
+                    return Mono.just(chatRoom);
+                })
+                .flatMapMany(chatRoom ->
+                        fastApiChatClient.stream(roomId, content)
+                                .concatMap(event -> switch (event) {
+                                    case ChatStreamEvent.Chunk chunk -> Mono.<ServerSentEvent<Object>>just(
+                                            ServerSentEvent.<Object>builder()
+                                                    .event("chunk")
+                                                    .data(new MessageChunkResponse(chunk.content()))
+                                                    .build()
+                                    );
+                                    case ChatStreamEvent.Done done -> processAndSave(chatRoom, content, done.payload())
+                                            .map(response -> {
+                                                try {
+                                                    String json = objectMapper.writerWithDefaultPrettyPrinter()
+                                                            .writeValueAsString(response);
+                                                    return ServerSentEvent.<Object>builder()
+                                                            .event("done")
+                                                            .data(json)
+                                                            .build();
+                                                } catch (Exception e) {
+                                                    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                                                            "Failed to serialize done payload.");
+                                                }
+                                            });
+                                })
+                )
+                .onErrorResume(e -> {
+                    log.error("SSE stream error for roomId={}: {}", roomId, e.getMessage(), e);
+                    String message;
+                    int status;
+                    if (e instanceof ResponseStatusException rse) {
+                        message = rse.getReason() != null ? rse.getReason() : "An error occurred.";
+                        status = rse.getStatusCode().value();
+                    } else {
+                        message = "Failed to process AI response.";
+                        status = 500;
+                    }
+                    return Flux.just(ServerSentEvent.<Object>builder()
+                            .event("error")
+                            .data(Map.of("status", status, "message", message))
+                            .build());
+                });
     }
 
-    private MessageDoneResponse processAndSave(ChatRoom chatRoom, String userContent,
-                                               FastApiDonePayload payload) {
-        ChatMessage userMsg = chatMessageRepository.save(
-                ChatMessage.of(chatRoom.getId(), "user", userContent));
-        if (payload.userMessage().embedding() != null) {
-            chatMessageRepository.updateEmbedding(userMsg.getId(),
-                    payload.userMessage().embedding().toString());
-        }
+    private Mono<MessageDoneResponse> processAndSave(ChatRoom chatRoom, String userContent, FastApiDonePayload payload) {
+        return chatMessageRepository.save(ChatMessage.of(chatRoom.getId(), "user", userContent))
+                .flatMap(userMsg -> {
+                    Mono<ChatMessage> afterUserEmbed = payload.userMessage().embedding() != null
+                            ? chatMessageRepository.updateEmbedding(userMsg.getId(),
+                                    payload.userMessage().embedding().toString()).thenReturn(userMsg)
+                            : Mono.just(userMsg);
 
-        ChatMessage assistantMsg = chatMessageRepository.save(
-                ChatMessage.of(chatRoom.getId(), "assistant", payload.assistantMessage().content()));
-        if (payload.assistantMessage().embedding() != null) {
-            chatMessageRepository.updateEmbedding(assistantMsg.getId(),
-                    payload.assistantMessage().embedding().toString());
-        }
+                    return afterUserEmbed.flatMap(u ->
+                            chatMessageRepository.save(ChatMessage.of(chatRoom.getId(), "assistant",
+                                    payload.assistantMessage().content()))
+                                    .flatMap(assistantMsg -> {
+                                        Mono<ChatMessage> afterAssistantEmbed = payload.assistantMessage().embedding() != null
+                                                ? chatMessageRepository.updateEmbedding(assistantMsg.getId(),
+                                                        payload.assistantMessage().embedding().toString()).thenReturn(assistantMsg)
+                                                : Mono.just(assistantMsg);
 
-        if (payload.memory() != null) {
-            try {
-                String preferencesJson = payload.memory().preferences() != null
-                        ? objectMapper.writeValueAsString(payload.memory().preferences())
-                        : null;
-                chatRoom.updateMemory(payload.memory().aiSummary(), preferencesJson);
-                chatRoomRepository.save(chatRoom);
-            } catch (Exception e) {
-                log.error("Failed to update chat room memory for roomId={}: {}", chatRoom.getId(), e.getMessage());
-            }
-        }
+                                        return afterAssistantEmbed.flatMap(a -> {
+                                            Mono<Void> updateMemory = Mono.empty();
+                                            if (payload.memory() != null) {
+                                                try {
+                                                    String prefJson = payload.memory().preferences() != null
+                                                            ? objectMapper.writeValueAsString(payload.memory().preferences())
+                                                            : null;
+                                                    chatRoom.updateMemory(payload.memory().aiSummary(), prefJson);
+                                                    updateMemory = chatRoomRepository.save(chatRoom)
+                                                            .doOnError(e -> log.error("Failed to update chat room memory for roomId={}: {}", chatRoom.getId(), e.getMessage()))
+                                                            .onErrorComplete()
+                                                            .then();
+                                                } catch (Exception e) {
+                                                    log.error("Failed to update chat room memory for roomId={}: {}", chatRoom.getId(), e.getMessage());
+                                                }
+                                            }
 
-        MessageDoneResponse.MessageItem userItem = new MessageDoneResponse.MessageItem(
-                userMsg.getId(), userMsg.getRole(), userMsg.getContent(), userMsg.getCreatedAt());
-        MessageDoneResponse.MessageItem assistantItem = new MessageDoneResponse.MessageItem(
-                assistantMsg.getId(), assistantMsg.getRole(), assistantMsg.getContent(), assistantMsg.getCreatedAt());
+                                            MessageDoneResponse.MessageItem userItem = new MessageDoneResponse.MessageItem(
+                                                    u.getId(), u.getRole(), u.getContent(), u.getCreatedAt());
+                                            MessageDoneResponse.MessageItem assistantItem = new MessageDoneResponse.MessageItem(
+                                                    a.getId(), a.getRole(), a.getContent(), a.getCreatedAt());
 
+                                            return updateMemory.then(dispatchByType(chatRoom, a.getId(), userItem, assistantItem, payload));
+                                        });
+                                    })
+                    );
+                });
+    }
+
+    private Mono<MessageDoneResponse> dispatchByType(ChatRoom chatRoom, UUID assistantMsgId,
+                                                      MessageDoneResponse.MessageItem userItem,
+                                                      MessageDoneResponse.MessageItem assistantItem,
+                                                      FastApiDonePayload payload) {
         return switch (payload) {
             case FastApiDonePayload.Chat ignored ->
-                    new MessageDoneResponse(userItem, assistantItem, null, null, null, null);
+                    Mono.just(new MessageDoneResponse(userItem, assistantItem, null, null, null, null));
 
             case FastApiDonePayload.Itinerary itinerary -> {
                 if (itinerary.itinerary() == null) {
                     log.warn("type=itinerary but itinerary data is null — treating as chat. roomId={}", chatRoom.getId());
-                    yield new MessageDoneResponse(userItem, assistantItem, null, null, null, null);
+                    yield Mono.just(new MessageDoneResponse(userItem, assistantItem, null, null, null, null));
                 }
-                yield processItinerary(chatRoom.getId(), assistantMsg.getId(), userItem, assistantItem, itinerary);
+                yield processItinerary(chatRoom.getId(), assistantMsgId, userItem, assistantItem, itinerary);
             }
 
             case FastApiDonePayload.Change change -> {
                 if (change.change() == null) {
                     log.warn("type=change but change data is null — treating as chat. roomId={}", chatRoom.getId());
-                    yield new MessageDoneResponse(userItem, assistantItem, null, null, null, null);
+                    yield Mono.just(new MessageDoneResponse(userItem, assistantItem, null, null, null, null));
                 }
-                yield processChange(chatRoom.getId(), assistantMsg.getId(), userItem, assistantItem, change);
+                yield processChange(chatRoom.getId(), assistantMsgId, userItem, assistantItem, change);
             }
 
             case FastApiDonePayload.Reservation reservation -> {
                 if (reservation.reservation() == null) {
                     log.warn("type=reservation but reservation data is null — treating as chat. roomId={}", chatRoom.getId());
-                    yield new MessageDoneResponse(userItem, assistantItem, null, null, null, null);
+                    yield Mono.just(new MessageDoneResponse(userItem, assistantItem, null, null, null, null));
                 }
-                yield processReservation(chatRoom.getId(), assistantMsg.getId(), userItem, assistantItem, reservation);
+                yield processReservation(chatRoom.getId(), assistantMsgId, userItem, assistantItem, reservation);
             }
 
             case FastApiDonePayload.Cancel cancel -> {
                 if (cancel.cancel() == null) {
                     log.warn("type=cancel but cancel data is null — treating as chat. roomId={}", chatRoom.getId());
-                    yield new MessageDoneResponse(userItem, assistantItem, null, null, null, null);
+                    yield Mono.just(new MessageDoneResponse(userItem, assistantItem, null, null, null, null));
                 }
-                yield processCancel(chatRoom.getId(), assistantMsg.getId(), userItem, assistantItem, cancel);
+                yield processCancel(chatRoom.getId(), assistantMsgId, userItem, assistantItem, cancel);
             }
         };
     }
 
-    private MessageDoneResponse processItinerary(UUID roomId,
-                                                 UUID assistantMsgId,
-                                                 MessageDoneResponse.MessageItem userItem,
-                                                 MessageDoneResponse.MessageItem assistantItem,
-                                                 FastApiDonePayload.Itinerary payload) {
-        Itinerary itinerary = itineraryRepository.findByRoomId(roomId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Itinerary not found for this chat room."));
+    private Mono<MessageDoneResponse> processItinerary(UUID roomId, UUID assistantMsgId,
+                                                        MessageDoneResponse.MessageItem userItem,
+                                                        MessageDoneResponse.MessageItem assistantItem,
+                                                        FastApiDonePayload.Itinerary payload) {
+        return itineraryRepository.findByRoomId(roomId)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Itinerary not found for this chat room.")))
+                .flatMap(itinerary -> {
+                    Map<String, List<Map<String, Object>>> existingDayPlans;
+                    try {
+                        existingDayPlans = objectMapper.readValue(itinerary.getDayPlans(), new TypeReference<>() {});
+                    } catch (Exception e) {
+                        return Mono.error(new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                                "Failed to parse existing day plans."));
+                    }
 
-        Map<String, List<Map<String, Object>>> existingDayPlans;
-        try {
-            existingDayPlans = objectMapper.readValue(itinerary.getDayPlans(), new TypeReference<>() {});
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Failed to parse existing day plans.");
-        }
+                    Map<String, List<Map<String, Object>>> merged = new LinkedHashMap<>(existingDayPlans);
 
-        Map<String, List<Map<String, Object>>> merged = new LinkedHashMap<>(existingDayPlans);
+                    for (Map.Entry<String, List<Map<String, Object>>> entry : payload.itinerary().dayPlans().entrySet()) {
+                        List<Map<String, Object>> existingItems = existingDayPlans.getOrDefault(entry.getKey(), List.of());
+                        Map<String, String> existingStatusByTime = new LinkedHashMap<>();
+                        for (Map<String, Object> item : existingItems) {
+                            existingStatusByTime.put((String) item.get("time"),
+                                    (String) item.getOrDefault("status", "todo"));
+                        }
+                        List<Map<String, Object>> normalized = entry.getValue().stream()
+                                .map(item -> {
+                                    Map<String, Object> n = new LinkedHashMap<>();
+                                    n.put("plan_name", item.get("plan_name"));
+                                    n.put("time", item.get("time"));
+                                    n.put("place", item.get("place"));
+                                    n.put("note", item.getOrDefault("note", ""));
+                                    n.put("cost", item.get("cost"));
+                                    n.put("status", existingStatusByTime.getOrDefault((String) item.get("time"), "todo"));
+                                    return n;
+                                })
+                                .sorted(Comparator.comparing(item ->
+                                        LocalTime.parse(((String) item.get("time")).split(" ~ ")[0])))
+                                .toList();
+                        merged.put(entry.getKey(), normalized);
+                    }
 
-        for (Map.Entry<String, List<Map<String, Object>>> entry : payload.itinerary().dayPlans().entrySet()) {
-            List<Map<String, Object>> existingItems = existingDayPlans.getOrDefault(entry.getKey(), List.of());
-            Map<String, String> existingStatusByTime = new LinkedHashMap<>();
-            for (Map<String, Object> item : existingItems) {
-                existingStatusByTime.put((String) item.get("time"),
-                        (String) item.getOrDefault("status", "todo"));
-            }
+                    Map<String, List<Map<String, Object>>> result = new LinkedHashMap<>();
+                    merged.entrySet().stream()
+                            .sorted(Map.Entry.comparingByKey())
+                            .forEach(e -> result.put(e.getKey(), e.getValue()));
 
-            List<Map<String, Object>> normalized = entry.getValue().stream()
-                    .map(item -> {
-                        Map<String, Object> n = new LinkedHashMap<>();
-                        n.put("plan_name", item.get("plan_name"));
-                        n.put("time", item.get("time"));
-                        n.put("place", item.get("place"));
-                        n.put("note", item.getOrDefault("note", ""));
-                        n.put("cost", item.get("cost"));
-                        n.put("status", existingStatusByTime.getOrDefault((String) item.get("time"), "todo"));
-                        return n;
-                    })
-                    .sorted(Comparator.comparing(item ->
-                            LocalTime.parse(((String) item.get("time")).split(" ~ ")[0])))
-                    .toList();
-            merged.put(entry.getKey(), normalized);
-        }
+                    String resultJson;
+                    try {
+                        resultJson = objectMapper.writeValueAsString(result);
+                    } catch (Exception e) {
+                        return Mono.error(new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                                "Failed to serialize day plans."));
+                    }
 
-        Map<String, List<Map<String, Object>>> result = new LinkedHashMap<>();
-        merged.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(e -> result.put(e.getKey(), e.getValue()));
+                    return Mono.from(transactionalOperator.transactional(
+                            itineraryLogRepository.save(ItineraryLog.of(itinerary))
+                                    .then(Mono.defer(() -> {
+                                        itinerary.updateDayPlans(resultJson);
+                                        return itineraryRepository.save(itinerary);
+                                    }))
+                    )).flatMap(savedItinerary -> {
+                                Map<String, List<Map<String, Object>>> indexedDayPlans =
+                                        itineraryServiceHelper.parseDayPlansWithIndex(resultJson);
 
-        String resultJson;
-        try {
-            resultJson = objectMapper.writeValueAsString(result);
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Failed to serialize day plans.");
-        }
+                                try {
+                                    Map<String, Object> snapshot = new LinkedHashMap<>();
+                                    snapshot.put("itineraryId", itinerary.getId());
+                                    snapshot.put("destinations", itineraryServiceHelper.parseAsObject(itinerary.getDestinations()));
+                                    snapshot.put("startDate", itinerary.getStartDate());
+                                    snapshot.put("endDate", itinerary.getEndDate());
+                                    snapshot.put("totalDays", itinerary.getTotalDays());
+                                    snapshot.put("dayPlans", indexedDayPlans);
+                                    return chatMessageRepository.updateActionResult(assistantMsgId,
+                                            objectMapper.writeValueAsString(snapshot))
+                                            .thenReturn(buildItineraryResponse(userItem, assistantItem, itinerary, indexedDayPlans, savedItinerary.getUpdatedAt()));
+                                } catch (Exception e) {
+                                    log.error("Failed to save action_result for assistantMsgId={}: {}", assistantMsgId, e.getMessage());
+                                    return Mono.just(buildItineraryResponse(userItem, assistantItem, itinerary, indexedDayPlans, savedItinerary.getUpdatedAt()));
+                                }
+                            });
+                });
+    }
 
-        Itinerary savedItinerary = transactionTemplate.execute(status -> {
-            itineraryLogRepository.save(ItineraryLog.of(itinerary));
-            itinerary.updateDayPlans(resultJson);
-            return itineraryRepository.save(itinerary);
-        });
-
-        Map<String, List<Map<String, Object>>> indexedDayPlans = parseDayPlansWithIndex(resultJson);
-
-        // assistant 메시지에 일정 스냅샷 저장
-        try {
-            Map<String, Object> snapshot = new LinkedHashMap<>();
-            snapshot.put("itineraryId", itinerary.getId());
-            snapshot.put("destinations", itinerary.getDestinations());
-            snapshot.put("startDate", itinerary.getStartDate());
-            snapshot.put("endDate", itinerary.getEndDate());
-            snapshot.put("totalDays", itinerary.getTotalDays());
-            snapshot.put("dayPlans", indexedDayPlans);
-            chatMessageRepository.updateActionResult(assistantMsgId, objectMapper.writeValueAsString(snapshot));
-        } catch (Exception e) {
-            log.error("Failed to save action_result for assistantMsgId={}: {}", assistantMsgId, e.getMessage());
-        }
-
+    private MessageDoneResponse buildItineraryResponse(MessageDoneResponse.MessageItem userItem,
+                                                        MessageDoneResponse.MessageItem assistantItem,
+                                                        Itinerary itinerary,
+                                                        Map<String, List<Map<String, Object>>> indexedDayPlans,
+                                                        OffsetDateTime updatedAt) {
         return new MessageDoneResponse(
                 userItem, assistantItem,
                 new MessageDoneResponse.ItineraryResult(
                         itinerary.getId(),
-                        itinerary.getDestinations(),
+                        itineraryServiceHelper.parseDestinations(itinerary.getDestinations()),
                         itinerary.getStartDate(),
                         itinerary.getEndDate(),
                         indexedDayPlans,
-                        savedItinerary.getUpdatedAt()),
+                        updatedAt),
                 null, null, null);
     }
 
-    private MessageDoneResponse processChange(UUID roomId,
-                                              UUID assistantMsgId,
-                                              MessageDoneResponse.MessageItem userItem,
-                                              MessageDoneResponse.MessageItem assistantItem,
-                                              FastApiDonePayload.Change payload) {
-        Itinerary itinerary = itineraryRepository.findByRoomId(roomId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Itinerary not found for this chat room."));
+    private Mono<MessageDoneResponse> processChange(UUID roomId, UUID assistantMsgId,
+                                                     MessageDoneResponse.MessageItem userItem,
+                                                     MessageDoneResponse.MessageItem assistantItem,
+                                                     FastApiDonePayload.Change payload) {
+        return itineraryRepository.findByRoomId(roomId)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Itinerary not found for this chat room.")))
+                .flatMap(itinerary -> {
+                    FastApiDonePayload.ChangeData change = payload.change();
+                    List<DestinationItem> newDestinations = change.destinations();
+                    if (newDestinations != null) {
+                        ItineraryServiceImpl.validateDestinations(newDestinations);
+                    }
 
-        FastApiDonePayload.ChangeData change = payload.change();
+                    LocalDate effectiveStart = newDestinations != null
+                            ? newDestinations.get(0).startDate()
+                            : itinerary.getStartDate();
+                    LocalDate effectiveEnd = newDestinations != null
+                            ? newDestinations.get(newDestinations.size() - 1).endDate()
+                            : itinerary.getEndDate();
 
-        List<DestinationItem> newDestinations = change.destinations();
-        if (newDestinations != null) {
-            ItineraryServiceImpl.validateDestinations(newDestinations);
-        }
+                    boolean dateChanged = !effectiveStart.equals(itinerary.getStartDate())
+                            || !effectiveEnd.equals(itinerary.getEndDate());
+                    String updatedDayPlans = dateChanged
+                            ? itineraryServiceHelper.adjustDayPlans(itinerary.getDayPlans(), effectiveStart, effectiveEnd)
+                            : null;
 
-        LocalDate effectiveStart = newDestinations != null
-                ? newDestinations.get(0).startDate()
-                : itinerary.getStartDate();
-        LocalDate effectiveEnd = newDestinations != null
-                ? newDestinations.get(newDestinations.size() - 1).endDate()
-                : itinerary.getEndDate();
+                    String newDestinationsJson = null;
+                    String newChildAgesJson = null;
+                    try {
+                        if (newDestinations != null) {
+                            newDestinationsJson = objectMapper.writeValueAsString(newDestinations);
+                        }
+                        if (change.childAges() != null) {
+                            newChildAgesJson = objectMapper.writeValueAsString(change.childAges());
+                        }
+                    } catch (Exception e) {
+                        return Mono.error(new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                                "Failed to process change."));
+                    }
 
-        boolean dateChanged = !effectiveStart.equals(itinerary.getStartDate())
-                || !effectiveEnd.equals(itinerary.getEndDate());
-        String updatedDayPlans = dateChanged
-                ? adjustDayPlans(itinerary.getDayPlans(), effectiveStart, effectiveEnd)
-                : null;
+                    final String finalDestJson = newDestinationsJson;
+                    final String finalChildAgesJson = newChildAgesJson;
+                    final LocalDate finalEffectiveStart = effectiveStart;
+                    final LocalDate finalEffectiveEnd = effectiveEnd;
 
-        Itinerary savedItinerary = transactionTemplate.execute(status -> {
-            itineraryLogRepository.save(ItineraryLog.of(itinerary));
-            itinerary.updateBasicInfo(
-                    newDestinations, change.budget(),
-                    change.adultCount(),
-                    change.childCount(), change.childAges(),
-                    updatedDayPlans);
-            return itineraryRepository.save(itinerary);
-        });
+                    return Mono.from(transactionalOperator.transactional(
+                            itineraryLogRepository.save(ItineraryLog.of(itinerary))
+                                    .then(Mono.defer(() -> {
+                                        itinerary.updateBasicInfo(
+                                                finalDestJson, change.budget(),
+                                                change.adultCount(),
+                                                change.childCount(), finalChildAgesJson,
+                                                updatedDayPlans,
+                                                finalEffectiveStart, finalEffectiveEnd);
+                                        return itineraryRepository.save(itinerary);
+                                    }))
+                    )).flatMap(savedItinerary -> {
+                                try {
+                                    Map<String, Object> snapshot = new LinkedHashMap<>();
+                                    snapshot.put("itineraryId", itinerary.getId());
+                                    snapshot.put("destinations", itineraryServiceHelper.parseAsObject(itinerary.getDestinations()));
+                                    snapshot.put("startDate", itinerary.getStartDate());
+                                    snapshot.put("endDate", itinerary.getEndDate());
+                                    snapshot.put("totalDays", itinerary.getTotalDays());
+                                    snapshot.put("budget", itinerary.getBudget());
+                                    snapshot.put("adultCount", itinerary.getAdultCount());
+                                    snapshot.put("childCount", itinerary.getChildCount());
+                                    snapshot.put("childAges", itineraryServiceHelper.parseAsObject(itinerary.getChildAges()));
+                                    return chatMessageRepository.updateActionResult(assistantMsgId,
+                                            objectMapper.writeValueAsString(snapshot))
+                                            .thenReturn(buildChangeResponse(userItem, assistantItem, itinerary, savedItinerary.getUpdatedAt()));
+                                } catch (Exception e) {
+                                    log.error("Failed to save action_result for assistantMsgId={}: {}", assistantMsgId, e.getMessage());
+                                    return Mono.just(buildChangeResponse(userItem, assistantItem, itinerary, savedItinerary.getUpdatedAt()));
+                                }
+                            });
+                });
+    }
 
-        try {
-            Map<String, Object> snapshot = new LinkedHashMap<>();
-            snapshot.put("itineraryId", itinerary.getId());
-            snapshot.put("destinations", itinerary.getDestinations());
-            snapshot.put("startDate", itinerary.getStartDate());
-            snapshot.put("endDate", itinerary.getEndDate());
-            snapshot.put("totalDays", itinerary.getTotalDays());
-            snapshot.put("budget", itinerary.getBudget());
-            snapshot.put("adultCount", itinerary.getAdultCount());
-            snapshot.put("childCount", itinerary.getChildCount());
-            snapshot.put("childAges", itinerary.getChildAges());
-            chatMessageRepository.updateActionResult(assistantMsgId, objectMapper.writeValueAsString(snapshot));
-        } catch (Exception e) {
-            log.error("Failed to save action_result for assistantMsgId={}: {}", assistantMsgId, e.getMessage());
-        }
-
+    private MessageDoneResponse buildChangeResponse(MessageDoneResponse.MessageItem userItem,
+                                                     MessageDoneResponse.MessageItem assistantItem,
+                                                     Itinerary itinerary,
+                                                     OffsetDateTime updatedAt) {
         return new MessageDoneResponse(
                 userItem, assistantItem, null,
                 new MessageDoneResponse.ChangeResult(
                         itinerary.getId(),
-                        itinerary.getDestinations(),
+                        itineraryServiceHelper.parseDestinations(itinerary.getDestinations()),
                         itinerary.getStartDate(),
                         itinerary.getEndDate(),
                         itinerary.getTotalDays(),
                         itinerary.getBudget(),
                         itinerary.getAdultCount(),
                         itinerary.getChildCount(),
-                        itinerary.getChildAges(),
-                        savedItinerary.getUpdatedAt()),
+                        itineraryServiceHelper.parseChildAges(itinerary.getChildAges()),
+                        updatedAt),
                 null, null);
     }
 
-    private MessageDoneResponse processReservation(UUID roomId,
-                                                   UUID assistantMsgId,
-                                                   MessageDoneResponse.MessageItem userItem,
-                                                   MessageDoneResponse.MessageItem assistantItem,
-                                                   FastApiDonePayload.Reservation payload) {
-        Itinerary itinerary = itineraryRepository.findByRoomId(roomId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Itinerary not found for this chat room."));
+    private Mono<MessageDoneResponse> processReservation(UUID roomId, UUID assistantMsgId,
+                                                          MessageDoneResponse.MessageItem userItem,
+                                                          MessageDoneResponse.MessageItem assistantItem,
+                                                          FastApiDonePayload.Reservation payload) {
+        return itineraryRepository.findByRoomId(roomId)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Itinerary not found for this chat room.")))
+                .flatMap(itinerary -> {
+                    FastApiDonePayload.ReservationData r = payload.reservation();
+                    String detailJson;
+                    try {
+                        detailJson = objectMapper.writeValueAsString(r.detail());
+                    } catch (Exception e) {
+                        return Mono.error(new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                                "Failed to serialize reservation detail."));
+                    }
 
-        FastApiDonePayload.ReservationData r = payload.reservation();
+                    return reservationRepository.save(Reservation.of(
+                            itinerary.getId(), r.type(), "confirmed", "ai",
+                            r.bookingUrl(), r.externalRefId(), detailJson,
+                            r.totalPrice(), r.currency(), r.reservedAt()))
+                            .flatMap(saved -> {
+                                try {
+                                    Map<String, Object> snapshot = new LinkedHashMap<>();
+                                    snapshot.put("reservationId", saved.getId());
+                                    snapshot.put("type", saved.getType());
+                                    snapshot.put("status", saved.getStatus());
+                                    snapshot.put("bookingUrl", saved.getBookingUrl());
+                                    snapshot.put("externalRefId", saved.getExternalRefId());
+                                    snapshot.put("detail", r.detail());
+                                    snapshot.put("totalPrice", saved.getTotalPrice());
+                                    snapshot.put("currency", saved.getCurrency());
+                                    snapshot.put("reservedAt", saved.getReservedAt());
+                                    return chatMessageRepository.updateActionResult(assistantMsgId,
+                                            objectMapper.writeValueAsString(snapshot))
+                                            .thenReturn(buildReservationResponse(userItem, assistantItem, saved, r.detail()));
+                                } catch (Exception e) {
+                                    log.error("Failed to save action_result for assistantMsgId={}: {}", assistantMsgId, e.getMessage());
+                                    return Mono.just(buildReservationResponse(userItem, assistantItem, saved, r.detail()));
+                                }
+                            });
+                });
+    }
 
-        String detailJson;
-        try {
-            detailJson = objectMapper.writeValueAsString(r.detail());
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Failed to serialize reservation detail.");
-        }
-
-        Reservation saved = reservationRepository.save(
-                Reservation.of(
-                        itinerary.getId(),
-                        r.type(),
-                        "confirmed",
-                        "ai",
-                        r.bookingUrl(),
-                        r.externalRefId(),
-                        detailJson,
-                        r.totalPrice(),
-                        r.currency(),
-                        r.reservedAt()
-                )
-        );
-
-        try {
-            Map<String, Object> snapshot = new LinkedHashMap<>();
-            snapshot.put("reservationId", saved.getId());
-            snapshot.put("type", saved.getType());
-            snapshot.put("status", saved.getStatus());
-            snapshot.put("bookingUrl", saved.getBookingUrl());
-            snapshot.put("externalRefId", saved.getExternalRefId());
-            snapshot.put("detail", r.detail());
-            snapshot.put("totalPrice", saved.getTotalPrice());
-            snapshot.put("currency", saved.getCurrency());
-            snapshot.put("reservedAt", saved.getReservedAt());
-            chatMessageRepository.updateActionResult(assistantMsgId, objectMapper.writeValueAsString(snapshot));
-        } catch (Exception e) {
-            log.error("Failed to save action_result for assistantMsgId={}: {}", assistantMsgId, e.getMessage());
-        }
-
+    private MessageDoneResponse buildReservationResponse(MessageDoneResponse.MessageItem userItem,
+                                                          MessageDoneResponse.MessageItem assistantItem,
+                                                          Reservation saved,
+                                                          Map<String, Object> detail) {
         return new MessageDoneResponse(
                 userItem, assistantItem, null, null,
                 new MessageDoneResponse.ReservationResult(
-                        saved.getId(),
-                        saved.getType(),
-                        saved.getStatus(),
-                        saved.getBookingUrl(),
-                        saved.getExternalRefId(),
-                        r.detail(),
-                        saved.getTotalPrice(),
-                        saved.getCurrency(),
-                        saved.getReservedAt()
-                ),
+                        saved.getId(), saved.getType(), saved.getStatus(),
+                        saved.getBookingUrl(), saved.getExternalRefId(), detail,
+                        saved.getTotalPrice(), saved.getCurrency(), saved.getReservedAt()),
                 null);
     }
 
-    private MessageDoneResponse processCancel(UUID roomId,
-                                              UUID assistantMsgId,
-                                              MessageDoneResponse.MessageItem userItem,
-                                              MessageDoneResponse.MessageItem assistantItem,
-                                              FastApiDonePayload.Cancel payload) {
+    private Mono<MessageDoneResponse> processCancel(UUID roomId, UUID assistantMsgId,
+                                                     MessageDoneResponse.MessageItem userItem,
+                                                     MessageDoneResponse.MessageItem assistantItem,
+                                                     FastApiDonePayload.Cancel payload) {
         FastApiDonePayload.CancelData c = payload.cancel();
 
-        Reservation reservation = reservationRepository.findById(c.reservationId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Reservation not found."));
-
-        reservation.update("cancelled", null, null, null, null, c.cancelledAt());
-        reservationRepository.save(reservation);
-
-        try {
-            Map<String, Object> snapshot = new LinkedHashMap<>();
-            snapshot.put("reservationId", reservation.getId());
-            snapshot.put("status", reservation.getStatus());
-            snapshot.put("cancelledAt", reservation.getCancelledAt());
-            chatMessageRepository.updateActionResult(assistantMsgId, objectMapper.writeValueAsString(snapshot));
-        } catch (Exception e) {
-            log.error("Failed to save action_result for assistantMsgId={}: {}", assistantMsgId, e.getMessage());
-        }
-
-        return new MessageDoneResponse(
-                userItem, assistantItem, null, null, null,
-                new MessageDoneResponse.CancelResult(
-                        reservation.getId(),
-                        reservation.getStatus(),
-                        reservation.getCancelledAt()
-                )
-        );
+        return reservationRepository.findById(c.reservationId())
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservation not found.")))
+                .flatMap(reservation -> {
+                    reservation.update("cancelled", null, null, null, null, c.cancelledAt());
+                    return reservationRepository.save(reservation)
+                            .flatMap(saved -> {
+                                try {
+                                    Map<String, Object> snapshot = new LinkedHashMap<>();
+                                    snapshot.put("reservationId", saved.getId());
+                                    snapshot.put("status", saved.getStatus());
+                                    snapshot.put("cancelledAt", saved.getCancelledAt());
+                                    return chatMessageRepository.updateActionResult(assistantMsgId,
+                                            objectMapper.writeValueAsString(snapshot))
+                                            .thenReturn(buildCancelResponse(userItem, assistantItem, saved));
+                                } catch (Exception e) {
+                                    log.error("Failed to save action_result for assistantMsgId={}: {}", assistantMsgId, e.getMessage());
+                                    return Mono.just(buildCancelResponse(userItem, assistantItem, saved));
+                                }
+                            });
+                });
     }
 
-    private String adjustDayPlans(String currentJson, LocalDate newStart, LocalDate newEnd) {
-        try {
-            Map<String, Object> dayPlans = objectMapper.readValue(currentJson, new TypeReference<>() {});
-            dayPlans.keySet().removeIf(key -> {
-                LocalDate date = LocalDate.parse(key);
-                return date.isBefore(newStart) || date.isAfter(newEnd);
-            });
-            LocalDate cursor = newStart;
-            while (!cursor.isAfter(newEnd)) {
-                dayPlans.putIfAbsent(cursor.toString(), List.of());
-                cursor = cursor.plusDays(1);
-            }
-            Map<String, Object> sorted = new LinkedHashMap<>();
-            dayPlans.entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey())
-                    .forEach(e -> sorted.put(e.getKey(), e.getValue()));
-            return objectMapper.writeValueAsString(sorted);
-        } catch (Exception e) {
-            return currentJson;
-        }
+    private MessageDoneResponse buildCancelResponse(MessageDoneResponse.MessageItem userItem,
+                                                     MessageDoneResponse.MessageItem assistantItem,
+                                                     Reservation saved) {
+        return new MessageDoneResponse(
+                userItem, assistantItem, null, null, null,
+                new MessageDoneResponse.CancelResult(saved.getId(), saved.getStatus(), saved.getCancelledAt()));
     }
 
     private Map<String, List<Map<String, Object>>> parseDayPlansWithIndex(String dayPlansJson) {
-        try {
-            Map<String, List<Map<String, Object>>> raw =
-                    objectMapper.readValue(dayPlansJson, new TypeReference<>() {});
+        return itineraryServiceHelper.parseDayPlansWithIndex(dayPlansJson);
+    }
 
-            Map<String, List<Map<String, Object>>> result = new LinkedHashMap<>();
-            for (Map.Entry<String, List<Map<String, Object>>> entry : raw.entrySet()) {
-                List<Map<String, Object>> items = new ArrayList<>(entry.getValue());
-                items.sort(Comparator.comparing(item -> {
-                    String time = (String) item.get("time");
-                    return LocalTime.parse(time.split(" ~ ")[0]);
-                }));
-
-                List<Map<String, Object>> indexed = new ArrayList<>();
-                for (int i = 0; i < items.size(); i++) {
-                    Map<String, Object> withIndex = new LinkedHashMap<>();
-                    withIndex.put("index", i);
-                    withIndex.putAll(items.get(i));
-                    indexed.add(withIndex);
-                }
-                result.put(entry.getKey(), indexed);
-            }
-            return result;
-        } catch (Exception e) {
-            return new LinkedHashMap<>();
-        }
+    private String adjustDayPlans(String currentJson, LocalDate newStart, LocalDate newEnd) {
+        return itineraryServiceHelper.adjustDayPlans(currentJson, newStart, newEnd);
     }
 }

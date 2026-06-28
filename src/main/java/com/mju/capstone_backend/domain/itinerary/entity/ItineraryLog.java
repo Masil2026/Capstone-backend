@@ -1,80 +1,78 @@
 package com.mju.capstone_backend.domain.itinerary.entity;
 
-import com.mju.capstone_backend.domain.itinerary.dto.DestinationItem;
-import com.mju.capstone_backend.global.converter.IntegerListConverter;
-import jakarta.persistence.*;
+import io.r2dbc.postgresql.codec.Json;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 
-@Entity
-@Table(name = "itinerary_logs")
+@Table("itinerary_logs")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ItineraryLog {
+public class ItineraryLog implements Persistable<UUID> {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
     private UUID id;
 
-    @Column(name = "itinerary_id", nullable = false)
     private UUID itineraryId;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "destinations", columnDefinition = "jsonb")
-    private List<DestinationItem> destinations;
+    @Getter(AccessLevel.NONE)
+    private Json destinations;
 
-    @Column(name = "budget", precision = 12, scale = 2)
     private BigDecimal budget;
-
-    @Column(name = "adult_count")
     private Integer adultCount;
-
-    @Column(name = "child_count")
     private Integer childCount;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Convert(converter = IntegerListConverter.class)
-    @Column(name = "child_ages", columnDefinition = "jsonb")
-    private List<Integer> childAges;
+    @Getter(AccessLevel.NONE)
+    private Json childAges;
 
-    @Column(name = "total_days")
     private Integer totalDays;
-
-    @Column(name = "start_date")
     private LocalDate startDate;
-
-    @Column(name = "end_date")
     private LocalDate endDate;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "day_plans", columnDefinition = "jsonb", nullable = false)
-    private String dayPlans;
+    @Getter(AccessLevel.NONE)
+    private Json dayPlans;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
+
+    @Transient
+    private boolean newEntity = false;
+
+    @Override
+    public boolean isNew() {
+        return newEntity;
+    }
+
+    public String getDestinations() { return destinations != null ? destinations.asString() : null; }
+    public String getChildAges()    { return childAges    != null ? childAges.asString()    : null; }
+    public String getDayPlans()     { return dayPlans     != null ? dayPlans.asString()     : null; }
 
     public static ItineraryLog of(Itinerary itinerary) {
         ItineraryLog log = new ItineraryLog();
+        log.id = UUID.randomUUID();
         log.itineraryId = itinerary.getId();
-        log.destinations = itinerary.getDestinations();
+        String dest = itinerary.getDestinations();
+        log.destinations = dest != null ? Json.of(dest) : null;
         log.budget = itinerary.getBudget();
         log.adultCount = itinerary.getAdultCount();
         log.childCount = itinerary.getChildCount();
-        log.childAges = itinerary.getChildAges();
+        String ages = itinerary.getChildAges();
+        log.childAges = ages != null ? Json.of(ages) : null;
         log.totalDays = itinerary.getTotalDays();
         log.startDate = itinerary.getStartDate();
         log.endDate = itinerary.getEndDate();
-        log.dayPlans = itinerary.getDayPlans();
+        String plans = itinerary.getDayPlans();
+        log.dayPlans = plans != null ? Json.of(plans) : null;
+        log.createdAt = OffsetDateTime.now();
+        log.newEntity = true;
         return log;
     }
 }

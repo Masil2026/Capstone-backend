@@ -11,7 +11,7 @@
 
 ## 기술 스택 요약
 - **Java 21 / Spring Boot 3.5.x WebFlux**
-- **DB:** PostgreSQL(JPA, 동기) + Redis(Reactive, 비동기)
+- **DB:** PostgreSQL(R2DBC, 비동기) + Redis(Reactive, 비동기)
 - **인증:** Clerk JWT (OAuth2 Resource Server)
 - **마이그레이션:** Flyway / **문서:** SpringDoc OpenAPI(WebFlux)
 
@@ -25,7 +25,7 @@
 domain/{name}/
 ├── controller/  {Name}Controller.java
 ├── service/     {Name}Service.java (interface) + {Name}ServiceImpl.java
-├── repository/  {Name}Repository.java  (JpaRepository)
+├── repository/  {Name}Repository.java  (ReactiveCrudRepository)
 └── entity/      {Name}.java
 ```
 
@@ -33,18 +33,20 @@ domain/{name}/
 - 필드 주입(`@Autowired`) 금지 — 반드시 생성자 주입
 - Lombok `@RequiredArgsConstructor` 사용
 
-### Reactive / Blocking 혼용 패턴
-JPA(블로킹) 호출은 반드시 아래 패턴으로 격리:
+### R2DBC 네이티브 Reactive 패턴
+R2DBC 리포지토리는 네이티브 리액티브 — 별도 스케줄러 격리 불필요:
 ```
-Mono.fromCallable(() -> repository.save(entity))
-    .subscribeOn(dbScheduler)
+return repository.save(entity)   // Mono<T> 직접 반환
+return repository.findById(id)   // Mono<T> 직접 반환
 ```
-- `dbScheduler`는 `DatabaseConfig`에서 주입받는다
-- 절대 WebFlux 이벤트 루프 스레드에서 직접 JPA 호출 금지
+- `.then(publisher)` / `.thenMany(publisher)`는 체인 조립 시 즉시 호출됨 (eager)
+- 구독 시점에 실행되어야 하면 `.flatMap(ignored -> publisher)` 또는 `Mono.defer(...)` 사용
 
 ### Entity
+- `@Table("table_name")` 사용 (`@Entity` 없음 — R2DBC)
 - `@NoArgsConstructor(access = AccessLevel.PROTECTED)` 필수
 - 생성은 정적 팩터리 메서드 `{Name}.of(...)` 사용
+- 새 엔티티 감지 필요 시 `Persistable<T>` 구현 + `@Transient boolean newEntity` 필드 추가
 
 ---
 
@@ -71,7 +73,6 @@ Mono.fromCallable(() -> repository.save(entity))
 | Config/인프라 | `@SpringBootTest` + `@TestPropertySource(locations = "file:.env")` | 실제 Supabase/Redis |
 
 - 리액티브 검증은 `StepVerifier` 사용
-- Service 단위 테스트에서 Scheduler는 `Schedulers.immediate()`로 교체
 - JWT는 `SecurityMockServerConfigurers.mockJwt()` 사용
 
 ---

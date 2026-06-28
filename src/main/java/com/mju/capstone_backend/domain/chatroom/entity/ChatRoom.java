@@ -1,62 +1,62 @@
 package com.mju.capstone_backend.domain.chatroom.entity;
 
-import jakarta.persistence.*;
+import io.r2dbc.postgresql.codec.Json;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-@Entity
-@Table(name = "chat_rooms")
+@Table("chat_rooms")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ChatRoom {
+public class ChatRoom implements Persistable<UUID> {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
     private UUID id;
 
-    @Column(name = "clerk_id", nullable = false)
     private String clerkId;
-
-    @Column(name = "name", nullable = false, length = 100)
     private String name;
-
-    @Column(name = "ai_summary")
     private String aiSummary;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "preferences", columnDefinition = "jsonb")
-    private String preferences;
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Getter(AccessLevel.NONE)
+    private Json preferences;
     private OffsetDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
+
+    @Transient
+    private boolean newEntity = false;
+
+    @Override
+    public boolean isNew() {
+        return newEntity;
+    }
+
+    public String getPreferences() { return preferences != null ? preferences.asString() : null; }
 
     public static ChatRoom of(String clerkId, String name) {
         ChatRoom chatRoom = new ChatRoom();
+        chatRoom.id = UUID.randomUUID();
         chatRoom.clerkId = clerkId;
         chatRoom.name = name;
+        chatRoom.createdAt = OffsetDateTime.now();
+        chatRoom.updatedAt = OffsetDateTime.now();
+        chatRoom.newEntity = true;
         return chatRoom;
     }
 
     public void updateName(String name) {
         this.name = name;
+        this.updatedAt = OffsetDateTime.now();
     }
 
     public void updateMemory(String aiSummary, String preferences) {
         if (aiSummary != null) this.aiSummary = aiSummary;
-        if (preferences != null) this.preferences = preferences;
+        if (preferences != null) this.preferences = Json.of(preferences);
+        this.updatedAt = OffsetDateTime.now();
     }
 }

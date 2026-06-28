@@ -1,32 +1,27 @@
 package com.mju.capstone_backend.domain.reservation.repository;
 
 import com.mju.capstone_backend.domain.reservation.entity.Reservation;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.util.List;
 import java.util.UUID;
 
-public interface ReservationRepository extends JpaRepository<Reservation, UUID> {
+public interface ReservationRepository extends ReactiveCrudRepository<Reservation, UUID> {
 
-    boolean existsByItineraryId(UUID itineraryId);
+    Mono<Boolean> existsByItineraryId(UUID itineraryId);
 
-    boolean existsByItineraryIdAndStatusIn(UUID itineraryId, List<String> statuses);
+    @Query("SELECT EXISTS(SELECT 1 FROM reservations WHERE itinerary_id = :itineraryId AND status IN ('confirmed', 'changed'))")
+    Mono<Boolean> existsActiveByItineraryId(UUID itineraryId);
 
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM Reservation r WHERE r.itineraryId = :itineraryId")
-    void deleteAllByItineraryId(@Param("itineraryId") UUID itineraryId);
+    @Query("DELETE FROM reservations WHERE itinerary_id = :itineraryId")
+    Mono<Void> deleteAllByItineraryId(UUID itineraryId);
 
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM Reservation r WHERE r.itineraryId = :itineraryId AND r.status = 'cancelled'")
-    void deleteCancelledByItineraryId(@Param("itineraryId") UUID itineraryId);
+    @Query("DELETE FROM reservations WHERE itinerary_id = :itineraryId AND status = 'cancelled'")
+    Mono<Void> deleteCancelledByItineraryId(UUID itineraryId);
 
-    @Query(value = """
+    @Query("""
             SELECT r.* FROM reservations r
             INNER JOIN itineraries i ON r.itinerary_id = i.id
             INNER JOIN chat_rooms cr ON i.room_id = cr.id
@@ -34,10 +29,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
             AND (:type IS NULL OR r.type = :type)
             AND (:status IS NULL OR r.status = :status)
             ORDER BY r.updated_at DESC
-            """, nativeQuery = true)
-    List<Reservation> findByClerkIdWithFilters(
-            @Param("clerkId") String clerkId,
-            @Param("type") String type,
-            @Param("status") String status
-    );
+            """)
+    Flux<Reservation> findByClerkIdWithFilters(String clerkId, String type, String status);
 }
