@@ -21,6 +21,6 @@ public class UserServiceImpl implements UserService {
     public Mono<Void> deleteAccount(String clerkId) {
         return userRepository.existsById(clerkId)
                 .flatMap(exists -> exists ? userRepository.deleteById(clerkId) : Mono.empty())
-                .then(clerkApiClient.deleteUser(clerkId));
+                .then(Mono.defer(() -> clerkApiClient.deleteUser(clerkId)));
     }
 }
