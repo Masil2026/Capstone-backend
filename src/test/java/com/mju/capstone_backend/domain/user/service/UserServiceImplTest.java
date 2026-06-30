@@ -1,6 +1,5 @@
 package com.mju.capstone_backend.domain.user.service;
 
-import com.mju.capstone_backend.domain.user.entity.User;
 import com.mju.capstone_backend.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,6 +11,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,30 +28,25 @@ class UserServiceImplTest {
     private UserServiceImpl userService;
 
     @Test
-    @DisplayName("신규 사용자 - users 테이블에 INSERT")
-    void signup_newUser_saveCalled() {
+    @DisplayName("신규 사용자 - insertIfNotExists 호출")
+    void signup_newUser_insertIfNotExistsCalled() {
         String clerkId = "user_newClerkId";
-        when(userRepository.existsById(clerkId)).thenReturn(Mono.just(false));
-        when(userRepository.save(any(User.class))).thenReturn(Mono.just(User.of(clerkId)));
+        when(userRepository.insertIfNotExists(clerkId)).thenReturn(Mono.empty());
 
         StepVerifier.create(userService.signup(clerkId))
                 .verifyComplete();
 
-        verify(userRepository).existsById(clerkId);
-        verify(userRepository).save(any(User.class));
+        verify(userRepository).insertIfNotExists(clerkId);
     }
 
     @Test
-    @DisplayName("이미 존재하는 사용자 - INSERT 없이 무시")
-    void signup_existingUser_saveNotCalled() {
+    @DisplayName("이미 존재하는 사용자 - ON CONFLICT DO NOTHING으로 정상 완료")
+    void signup_existingUser_completesNormally() {
         String clerkId = "user_existingClerkId";
-        when(userRepository.existsById(clerkId)).thenReturn(Mono.just(true));
+        when(userRepository.insertIfNotExists(clerkId)).thenReturn(Mono.empty());
 
         StepVerifier.create(userService.signup(clerkId))
                 .verifyComplete();
-
-        verify(userRepository).existsById(clerkId);
-        verify(userRepository, never()).save(any());
     }
 
     @Test
