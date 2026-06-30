@@ -20,6 +20,7 @@ import com.mju.capstone_backend.domain.reservation.repository.ReservationReposit
 import com.mju.capstone_backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -189,6 +190,11 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                     return deleteOp
                             .thenReturn(new DeleteChatRoomResponse(roomId, true));
                 })
+                .onErrorMap(
+                        e -> e instanceof DataIntegrityViolationException,
+                        e -> new ResponseStatusException(HttpStatus.CONFLICT,
+                                "Cannot delete chat room with active reservations. Please cancel all reservations first.")
+                )
                 .onErrorMap(
                         e -> !(e instanceof ResponseStatusException),
                         e -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to delete chat room.")

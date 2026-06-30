@@ -56,7 +56,7 @@ public class ItineraryServiceImpl implements ItineraryService {
         return userRepository.existsById(clerkId)
                 .filter(Boolean::booleanValue)
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found. Please sign up first.")))
-                .thenMany(itineraryRepository.findSummariesByClerkId(clerkId))
+                .flatMapMany(ignored -> itineraryRepository.findSummariesByClerkId(clerkId))
                 .map(s -> new GetItinerariesResponse.ItineraryItem(
                         s.id(),
                         s.name(),
