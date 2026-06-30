@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -309,6 +310,25 @@ class ChatRoomServiceImplTest {
 
         verify(chatRoomRepository, never()).deleteById(any(UUID.class));
         verify(reservationRepository, never()).deleteCancelledByItineraryId(any());
+    }
+
+    @Test
+    @DisplayName("채팅방 삭제 - 체크 통과 후 동시 예약 생성으로 FK 위반 발생 시 409 반환")
+    void deleteChatRoom_concurrentActiveReservation_returns409() {
+        ChatRoom chatRoom = mockChatRoom(ROOM_ID, CLERK_ID, "레이스 발생 채팅방");
+        Itinerary itinerary = mockItinerary(ITINERARY_ID, ROOM_ID);
+
+        when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(chatRoom));
+        when(itineraryRepository.findByRoomId(ROOM_ID)).thenReturn(Mono.just(itinerary));
+        when(reservationRepository.existsActiveByItineraryId(ITINERARY_ID)).thenReturn(Mono.just(false));
+        when(reservationRepository.deleteCancelledByItineraryId(ITINERARY_ID)).thenReturn(Mono.empty());
+        when(chatRoomRepository.deleteById(ROOM_ID))
+                .thenReturn(Mono.error(new DataIntegrityViolationException("FK constraint violation")));
+
+        StepVerifier.create(chatRoomService.deleteChatRoom(CLERK_ID, ROOM_ID))
+                .expectErrorMatches(e -> e instanceof ResponseStatusException rse
+                        && rse.getStatusCode() == CONFLICT)
+                .verify();
     }
 
     @Test
