@@ -63,7 +63,9 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                     long totalDays = ChronoUnit.DAYS.between(
                             destinations.get(0).startDate(),
                             destinations.get(destinations.size() - 1).endDate()) + 1;
-                    String name = (totalDays - 1) + "박 " + totalDays + "일 " + destinations.get(0).city() + " 여행";
+                    String name = totalDays == 1
+                            ? "당일치기 " + destinations.get(0).city() + " 여행"
+                            : (totalDays - 1) + "박 " + totalDays + "일 " + destinations.get(0).city() + " 여행";
 
                     String destinationsJson;
                     String childAgesJson;

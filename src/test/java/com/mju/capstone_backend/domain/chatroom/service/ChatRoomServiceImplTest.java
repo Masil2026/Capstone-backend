@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -88,6 +89,8 @@ class ChatRoomServiceImplTest {
         when(itineraryRepository.save(any(Itinerary.class))).thenReturn(Mono.just(itinerary));
         when(chatMessageRepository.save(any(ChatMessage.class))).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
 
+        ArgumentCaptor<ChatRoom> captor = ArgumentCaptor.forClass(ChatRoom.class);
+
         StepVerifier.create(chatRoomService.createChatRoom(CLERK_ID, request))
                 .assertNext(res -> {
                     assertThat(res.roomId()).isEqualTo(ROOM_ID);
@@ -95,9 +98,39 @@ class ChatRoomServiceImplTest {
                 })
                 .verifyComplete();
 
-        verify(chatRoomRepository).save(any(ChatRoom.class));
+        verify(chatRoomRepository).save(captor.capture());
+        assertThat(captor.getValue().getName()).isEqualTo("2박 3일 도쿄 여행");
         verify(itineraryRepository).save(any(Itinerary.class));
         verify(chatMessageRepository).save(any(ChatMessage.class));
+    }
+
+    @Test
+    @DisplayName("채팅방 생성 - 당일치기(start==end) 요청 시 정상 생성되고 이름에 '당일치기' 표시")
+    void createChatRoom_dayTrip_startEqualsEnd_success() {
+        CreateChatRoomRequest request = new CreateChatRoomRequest(
+                List.of(new DestinationItem("도쿄", LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 1))),
+                BigDecimal.valueOf(200000), 1, 0, List.of()
+        );
+
+        ChatRoom chatRoom = mockChatRoom(ROOM_ID, CLERK_ID, "당일치기 도쿄 여행");
+        Itinerary itinerary = mockItinerary(ITINERARY_ID, ROOM_ID);
+
+        when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
+        when(chatRoomRepository.save(any(ChatRoom.class))).thenReturn(Mono.just(chatRoom));
+        when(itineraryRepository.save(any(Itinerary.class))).thenReturn(Mono.just(itinerary));
+        when(chatMessageRepository.save(any(ChatMessage.class))).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
+
+        ArgumentCaptor<ChatRoom> captor = ArgumentCaptor.forClass(ChatRoom.class);
+
+        StepVerifier.create(chatRoomService.createChatRoom(CLERK_ID, request))
+                .assertNext(res -> {
+                    assertThat(res.roomId()).isEqualTo(ROOM_ID);
+                    assertThat(res.itineraryId()).isEqualTo(ITINERARY_ID);
+                })
+                .verifyComplete();
+
+        verify(chatRoomRepository).save(captor.capture());
+        assertThat(captor.getValue().getName()).isEqualTo("당일치기 도쿄 여행");
     }
 
     @Test
