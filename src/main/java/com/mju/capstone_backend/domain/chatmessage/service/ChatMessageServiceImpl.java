@@ -276,6 +276,8 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                                     n.put("place", item.get("place"));
                                     n.put("note", item.getOrDefault("note", ""));
                                     n.put("cost", item.get("cost"));
+                                    n.put("image_url", item.get("image_url"));  // AI가 보내면 보존, 없으면 null
+                                    n.put("url", item.get("url"));              // 예약/상세 링크. 없으면 null
                                     n.put("status", existingStatusByTime.getOrDefault((String) item.get("time"), "todo"));
                                     return n;
                                 })
