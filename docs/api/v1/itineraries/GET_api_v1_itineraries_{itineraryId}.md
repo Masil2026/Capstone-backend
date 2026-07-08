@@ -52,7 +52,7 @@
       "endDate": "2026-05-04",
       "dayPlans": {
         "2026-05-01": [
-          {"index": 0, "plan_name": "경복궁 방문", "time": "09:00 ~ 12:00", "place": "경복궁", "note": "한복 대여 추천", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "status": "done"},
+          {"index": 0, "plan_name": "경복궁 방문", "time": "09:00 ~ 12:00", "place": "경복궁", "note": "한복 대여 추천", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "image_url": "http://tong.visitkorea.or.kr/cms/resource/.../gyeongbokgung.jpg", "url": null, "status": "done"},
           ...
         ]
       },
@@ -179,10 +179,10 @@
 ```json
 {
   "2026-05-01": [
-    {"plan_name": "경복궁 방문", "time": "09:00 ~ 12:00", "place": "경복궁", "note": "한복 대여 추천", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "status": "done"},
-    {"plan_name": "광장시장 방문", "time": "12:00 ~ 14:30", "place": "광장시장", "note": "빈대떡, 마약김밥 필수", "cost": null, "status": "todo"},
-    {"plan_name": "창덕궁 방문", "time": "14:30 ~ 18:00", "place": "창덕궁", "note": "후원 투어 예약 필요", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "status": "todo"},
-    {"plan_name": "북촌한옥마을 방문", "time": "18:00 ~ 20:00", "place": "북촌한옥마을", "note": "저녁 산책 겸 구경", "cost": null, "status": "todo"}
+    {"plan_name": "경복궁 방문", "time": "09:00 ~ 12:00", "place": "경복궁", "note": "한복 대여 추천", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "image_url": "http://tong.visitkorea.or.kr/cms/resource/.../gyeongbokgung.jpg", "url": null, "status": "done"},
+    {"plan_name": "광장시장 방문", "time": "12:00 ~ 14:30", "place": "광장시장", "note": "빈대떡, 마약김밥 필수", "cost": null, "image_url": null, "url": null, "status": "todo"},
+    {"plan_name": "창덕궁 방문", "time": "14:30 ~ 18:00", "place": "창덕궁", "note": "후원 투어 예약 필요", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "image_url": null, "url": null, "status": "todo"},
+    {"plan_name": "북촌한옥마을 방문", "time": "18:00 ~ 20:00", "place": "북촌한옥마을", "note": "저녁 산책 겸 구경", "cost": null, "image_url": null, "url": null, "status": "todo"}
   ]
 }
 ```
@@ -200,6 +200,8 @@
 | `cost.amount` | `number` | - | 현지 통화 금액 (소수점 허용) |
 | `cost.currency` | `string` | - | ISO 4217 통화 코드 (예: `"KRW"`, `"JPY"`, `"USD"`) |
 | `cost.amount_krw` | `integer \| null` | - | 한화 환산 금액. `currency`가 `"KRW"`이면 `null` |
+| `image_url` | `string \| null` | N | 대표 이미지 URL (관광지 이미지·숙소 사진·항공사 로고 등). AI가 주입, 없으면 `null` |
+| `url` | `string \| null` | N | 예약/상세 링크 (항공·숙소 예약 딥링크 등). AI가 주입, 없으면 `null` |
 | `status` | `string` | Y | `todo` (미완료) / `done` (완료) |
 
 **참고**
