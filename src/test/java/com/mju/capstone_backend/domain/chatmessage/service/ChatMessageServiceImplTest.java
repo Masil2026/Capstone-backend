@@ -457,7 +457,7 @@ class ChatMessageServiceImplTest {
             throw new RuntimeException(e);
         }
         Itinerary itinerary = Itinerary.of(
-                roomId, destinationsJson, new BigDecimal("500000"), 2, 0, childAgesJson,
+                roomId, destinationsJson, "{\"city\":\"서울\"}", new BigDecimal("500000"), 2, 0, childAgesJson,
                 LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 3));
         try {
             var idField = Itinerary.class.getDeclaredField("id");

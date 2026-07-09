@@ -27,6 +27,7 @@
 
 ```json
 {
+  "origin": {"city": "서울"},
   "destinations": [
     {"city": "제주도", "start_date": "2026-05-01", "end_date": "2026-05-03"}
   ],
@@ -39,6 +40,8 @@
 
 | Field | Required | Type | Description |
 | --- | --- | --- | --- |
+| `origin` | Y | Object | 출발지 정보 |
+| `origin.city` | Y | String | 출발지 이름 (공백 불가) |
 | `destinations` | Y | Array | 여행지 목록. 1개 이상이어야 하며, 여러 목적지일 경우 날짜가 연속적(앞 항목의 `end_date` = 다음 항목의 `start_date`)이어야 함 |
 | `destinations[].city` | Y | String | 여행지 이름 |
 | `destinations[].start_date` | Y | DATE | 해당 여행지 방문 시작일 (형식: YYYY-MM-DD) |
@@ -68,6 +71,24 @@
 ```
 
 #### **3.2 잘못된 요청 (400 Bad Request)**
+
+**`origin`이 누락됨**
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "origin is required."
+}
+```
+
+**`origin.city`가 비어 있음**
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "origin.city must not be blank."
+}
+```
 
 **`destinations`가 비어 있거나 누락됨**
 ```json
@@ -178,6 +199,7 @@
 2. **Claim Extraction**: JWT의 `sub` 클레임을 추출하여 `clerk_id`로 사용합니다.
 3. **User Check**: `users` 테이블에서 해당 `clerk_id` 사용자가 존재하는지 확인합니다. 존재하지 않으면 404를 반환합니다.
 4. **Validation**: 아래 항목을 검증합니다. 위반 시 400을 반환합니다.
+   - `origin`이 null이거나 `origin.city`가 비어 있으면 400을 반환합니다.
    - `destinations`가 null이거나 비어 있으면 400을 반환합니다.
    - 각 `destinations` 항목의 `city`가 비어 있거나, `startDate`/`endDate`가 null이거나, `startDate`가 `endDate`보다 이후이면 400을 반환합니다. (`startDate`와 `endDate`가 같으면 당일치기로 허용)
    - 여러 목적지인 경우, 앞 항목의 `endDate`와 다음 항목의 `startDate`가 같지 않으면(날짜 연속성 위반) 400을 반환합니다.
@@ -207,6 +229,7 @@
 | --- | --- |
 | `id` | PK |
 | `room_id` | 생성된 `chat_rooms.id` |
+| `origin` | 요청 `origin` JSONB 객체 (`{"city": "..."}`) |
 | `destinations` | 요청 `destinations` JSONB 배열 |
 | `start_date` | `destinations[0].start_date` |
 | `end_date` | `destinations[마지막].end_date` |
@@ -229,6 +252,7 @@ curl -X POST https://your-api-domain.com/api/v1/chat-rooms \
   -H "Authorization: Bearer <clerk_jwt_token>" \
   -H "Content-Type: application/json" \
   -d '{
+    "origin": {"city": "서울"},
     "destinations": [{"city": "제주도", "start_date": "2026-05-01", "end_date": "2026-05-03"}],
     "budget": 300000,
     "adultCount": 2,

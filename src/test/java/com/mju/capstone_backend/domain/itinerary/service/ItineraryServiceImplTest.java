@@ -81,9 +81,9 @@ class ItineraryServiceImplTest {
     @DisplayName("일정 목록 조회 - 정상 요청 시 draft 우선 정렬된 목록 반환")
     void getItineraries_success() {
         ItinerarySummary draft = new ItinerarySummary(UUID.randomUUID(), "도쿄 3박 4일 여행", "draft",
-                "도쿄", 4, LocalDate.of(2026, 5, 1));
+                "{\"city\":\"서울\"}", "도쿄", 4, LocalDate.of(2026, 5, 1));
         ItinerarySummary completed = new ItinerarySummary(UUID.randomUUID(), "부산 2박 3일 여행", "completed",
-                "부산", 3, LocalDate.of(2026, 3, 20));
+                "{\"city\":\"서울\"}", "부산", 3, LocalDate.of(2026, 3, 20));
 
         when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
         when(itineraryRepository.findSummariesByClerkId(CLERK_ID)).thenReturn(Flux.just(draft, completed));
@@ -1135,7 +1135,7 @@ class ItineraryServiceImplTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        Itinerary itinerary = Itinerary.of(roomId, destinationsJson,
+        Itinerary itinerary = Itinerary.of(roomId, destinationsJson, "{\"city\":\"서울\"}",
                 BigDecimal.valueOf(500000), 2, 1, childAgesJson,
                 LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 4));
         try {

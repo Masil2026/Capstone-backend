@@ -11,6 +11,7 @@ public record GetItineraryResponse(
         UUID itineraryId,
         String name,
         String status,
+        OriginItem origin,
         List<DestinationItem> destinations,
         BigDecimal budget,
         int adultCount,

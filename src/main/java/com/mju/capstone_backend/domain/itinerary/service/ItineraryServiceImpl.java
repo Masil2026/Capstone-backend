@@ -13,6 +13,7 @@ import com.mju.capstone_backend.domain.itinerary.dto.PatchItemStatusRequest;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchItemStatusResponse;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchItineraryRequest;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchItineraryResponse;
+import com.mju.capstone_backend.domain.itinerary.dto.OriginItem;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchStatusRequest;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchStatusResponse;
 import com.mju.capstone_backend.domain.itinerary.entity.Itinerary;
@@ -61,6 +62,7 @@ public class ItineraryServiceImpl implements ItineraryService {
                         s.id(),
                         s.name(),
                         s.status(),
+                        parseOrigin(s.origin()),
                         parseDestinations(s.destinations()),
                         s.totalDays(),
                         s.startDate()
@@ -92,6 +94,7 @@ public class ItineraryServiceImpl implements ItineraryService {
                                             itinerary.getId(),
                                             chatRoom.getName(),
                                             itinerary.getStatus(),
+                                            parseOrigin(itinerary.getOrigin()),
                                             parseDestinations(itinerary.getDestinations()),
                                             itinerary.getBudget(),
                                             itinerary.getAdultCount(),
@@ -476,6 +479,17 @@ public class ItineraryServiceImpl implements ItineraryService {
                 );
     }
 
+    // ─── origin 유효성 검사 ────────────────────────────────────────────────────
+
+    public static void validateOrigin(OriginItem origin) {
+        if (origin == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "origin is required.");
+        }
+        if (origin.city() == null || origin.city().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "origin.city must not be blank.");
+        }
+    }
+
     // ─── destinations 유효성 검사 ──────────────────────────────────────────────
 
     public static void validateDestinations(List<DestinationItem> destinations) {
@@ -522,6 +536,15 @@ public class ItineraryServiceImpl implements ItineraryService {
             return objectMapper.readValue(json, new TypeReference<>() {});
         } catch (Exception e) {
             return List.of();
+        }
+    }
+
+    public OriginItem parseOrigin(String json) {
+        if (json == null) return null;
+        try {
+            return objectMapper.readValue(json, OriginItem.class);
+        } catch (Exception e) {
+            return null;
         }
     }
 

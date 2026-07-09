@@ -17,6 +17,7 @@ public interface ItineraryRepository extends ReactiveCrudRepository<Itinerary, U
             SELECT i.id,
                    c.name,
                    i.status,
+                   CAST(i.origin AS text) AS origin,
                    CAST(i.destinations AS text) AS destinations,
                    i.total_days,
                    i.start_date

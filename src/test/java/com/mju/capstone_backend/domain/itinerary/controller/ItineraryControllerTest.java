@@ -4,6 +4,7 @@ import com.mju.capstone_backend.domain.itinerary.dto.DestinationItem;
 import com.mju.capstone_backend.domain.itinerary.dto.GetItinerariesResponse;
 import com.mju.capstone_backend.domain.itinerary.dto.GetItineraryLogsResponse;
 import com.mju.capstone_backend.domain.itinerary.dto.GetItineraryResponse;
+import com.mju.capstone_backend.domain.itinerary.dto.OriginItem;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchDayPlansRequest;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchDayPlansResponse;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchItemStatusRequest;
@@ -63,6 +64,7 @@ class ItineraryControllerTest {
         GetItinerariesResponse response = new GetItinerariesResponse(List.of(
                 new GetItinerariesResponse.ItineraryItem(
                         UUID.randomUUID(), "도쿄 3박 4일 여행", "draft",
+                        new OriginItem("서울"),
                         List.of(new DestinationItem("도쿄", LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 4))),
                         4, LocalDate.of(2026, 5, 1)
                 )
@@ -101,6 +103,7 @@ class ItineraryControllerTest {
     void getItinerary_withValidJwt_returns200() {
         GetItineraryResponse response = new GetItineraryResponse(
                 ITINERARY_ID, "서울 3박 4일 여행", "draft",
+                new OriginItem("서울"),
                 List.of(new DestinationItem("서울", LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 4))),
                 BigDecimal.valueOf(500000), 2, 1, List.of(5),
                 4, LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 4),
