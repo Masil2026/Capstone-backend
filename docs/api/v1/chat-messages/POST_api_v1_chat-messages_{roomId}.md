@@ -111,11 +111,11 @@
             "endDate": "2026-05-04",
             "dayPlans": {
               "2026-05-01": [
-                {"index": 0, "plan_name": "창덕궁 방문", "time": "09:00 ~ 12:00", "place": "창덕궁", "note": "후원 투어 예약 필요", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "status": "todo"},
-                {"index": 1, "plan_name": "광장시장 점심", "time": "12:00 ~ 14:30", "place": "광장시장", "note": "", "cost": null, "status": "todo"}
+                {"index": 0, "plan_name": "창덕궁 방문", "time": "09:00 ~ 12:00", "place": "창덕궁", "note": "후원 투어 예약 필요", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "image_url": "http://tong.visitkorea.or.kr/cms/resource/.../changdeokgung.jpg", "url": null, "status": "todo"},
+                {"index": 1, "plan_name": "광장시장 점심", "time": "12:00 ~ 14:30", "place": "광장시장", "note": "", "cost": null, "image_url": null, "url": null, "status": "todo"}
               ],
               "2026-05-02": [
-                {"index": 0, "plan_name": "N서울타워 방문", "time": "10:00 ~ 12:00", "place": "남산타워", "note": "", "cost": null, "status": "todo"}
+                {"index": 0, "plan_name": "N서울타워 방문", "time": "10:00 ~ 12:00", "place": "남산타워", "note": "", "cost": null, "image_url": "http://tong.visitkorea.or.kr/cms/resource/.../nseoultower.jpg", "url": null, "status": "todo"}
               ],
               "2026-05-03": [],
               "2026-05-04": []

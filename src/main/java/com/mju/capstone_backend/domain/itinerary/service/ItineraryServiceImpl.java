@@ -307,6 +307,8 @@ public class ItineraryServiceImpl implements ItineraryService {
                                                     normalized.put("place", item.get("place"));
                                                     normalized.put("note", item.getOrDefault("note", ""));
                                                     normalized.put("cost", item.get("cost"));
+                                                    normalized.put("image_url", item.get("image_url"));  // 사용자 편집 시에도 보존, 없으면 null
+                                                    normalized.put("url", item.get("url"));              // 예약/상세 링크. 없으면 null
                                                     normalized.put("status", existingStatusByTime.getOrDefault(
                                                             (String) item.get("time"), "todo"));
                                                     return normalized;
@@ -329,6 +331,8 @@ public class ItineraryServiceImpl implements ItineraryService {
                                                     Map<String, Object> n = new LinkedHashMap<>(item);
                                                     n.putIfAbsent("note", "");
                                                     n.putIfAbsent("cost", null);
+                                                    n.putIfAbsent("image_url", null);  // 정규화 결과와 키 정합 (오탐 방지)
+                                                    n.putIfAbsent("url", null);
                                                     return n;
                                                 })
                                                 .sorted(Comparator.comparing(item ->

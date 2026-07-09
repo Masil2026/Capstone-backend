@@ -74,8 +74,12 @@
 | `cost.amount` | - | Number | 현지 통화 금액 (소수점 허용) |
 | `cost.currency` | - | String | ISO 4217 통화 코드 (예: `"KRW"`, `"JPY"`, `"USD"`) |
 | `cost.amount_krw` | - | Integer \| null | 한화 환산 금액. `currency`가 `"KRW"`이면 `null` |
+| `image_url` | N | String \| null | 대표 이미지 URL. 요청에 포함하면 보존, 생략하면 `null`로 저장 |
+| `url` | N | String \| null | 예약/상세 링크. 요청에 포함하면 보존, 생략하면 `null`로 저장 |
 
 > `status`는 요청에 포함하지 않습니다. 서버에서 자동으로 결정됩니다. 기존 `day_plans`에 동일 `time`의 아이템이 있으면 해당 `status`를 이어받고, 없는 신규 아이템은 `"todo"`로 초기화됩니다.
+>
+> `image_url`·`url`은 AI가 생성한 값(관광지 이미지·예약 딥링크 등)입니다. 사용자가 직접 수정 시 기존 값을 보존하려면 요청에 그대로 포함하고, 생략하면 `null`로 저장됩니다.
 
 ---
 
@@ -90,8 +94,8 @@
   "itineraryId": "aaa-111",
   "dayPlans": {
     "2026-05-01": [
-      {"plan_name": "경복궁 방문", "time": "09:00 ~ 12:00", "place": "경복궁", "note": "한복 대여 추천", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "status": "done"},
-      {"plan_name": "광장시장 점심", "time": "12:00 ~ 14:30", "place": "광장시장", "note": "", "cost": null, "status": "todo"}
+      {"plan_name": "경복궁 방문", "time": "09:00 ~ 12:00", "place": "경복궁", "note": "한복 대여 추천", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "image_url": null, "url": null, "status": "done"},
+      {"plan_name": "광장시장 점심", "time": "12:00 ~ 14:30", "place": "광장시장", "note": "", "cost": null, "image_url": null, "url": null, "status": "todo"}
     ],
     "2026-05-02": [],
     "2026-05-03": []

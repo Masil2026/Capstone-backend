@@ -55,8 +55,8 @@
       "endDate": "2026-05-04",
       "dayPlans": {
         "2026-05-01": [
-          {"plan_name": "경복궁 방문", "time": "09:00 ~ 12:00", "place": "경복궁", "note": "한복 대여 추천", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "status": "done"},
-          {"plan_name": "광장시장 점심", "time": "12:00 ~ 14:30", "place": "광장시장", "note": "", "cost": null, "status": "todo"}
+          {"plan_name": "경복궁 방문", "time": "09:00 ~ 12:00", "place": "경복궁", "note": "한복 대여 추천", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "image_url": "http://tong.visitkorea.or.kr/cms/resource/.../gyeongbokgung.jpg", "url": null, "status": "done"},
+          {"plan_name": "광장시장 점심", "time": "12:00 ~ 14:30", "place": "광장시장", "note": "", "cost": null, "image_url": null, "url": null, "status": "todo"}
         ]
       },
       "createdAt": "2026-04-03T20:00:00"
@@ -73,9 +73,9 @@
       "endDate": "2026-05-04",
       "dayPlans": {
         "2026-05-01": [
-          {"plan_name": "경복궁 방문", "time": "09:00 ~ 12:00", "place": "경복궁", "note": "한복 대여 추천", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "status": "done"},
-          {"plan_name": "광장시장 점심", "time": "12:00 ~ 14:30", "place": "광장시장", "note": "", "cost": null, "status": "todo"},
-          {"plan_name": "창덕궁 방문", "time": "14:30 ~ 18:00", "place": "창덕궁", "note": "후원 투어 예약 필요", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "status": "todo"}
+          {"plan_name": "경복궁 방문", "time": "09:00 ~ 12:00", "place": "경복궁", "note": "한복 대여 추천", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "image_url": "http://tong.visitkorea.or.kr/cms/resource/.../gyeongbokgung.jpg", "url": null, "status": "done"},
+          {"plan_name": "광장시장 점심", "time": "12:00 ~ 14:30", "place": "광장시장", "note": "", "cost": null, "image_url": null, "url": null, "status": "todo"},
+          {"plan_name": "창덕궁 방문", "time": "14:30 ~ 18:00", "place": "창덕궁", "note": "후원 투어 예약 필요", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "image_url": null, "url": null, "status": "todo"}
         ]
       },
       "createdAt": "2026-04-05T14:30:00"
