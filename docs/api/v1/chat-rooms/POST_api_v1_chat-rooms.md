@@ -42,7 +42,7 @@
 | `destinations` | Y | Array | 여행지 목록. 1개 이상이어야 하며, 여러 목적지일 경우 날짜가 연속적(앞 항목의 `end_date` = 다음 항목의 `start_date`)이어야 함 |
 | `destinations[].city` | Y | String | 여행지 이름 |
 | `destinations[].start_date` | Y | DATE | 해당 여행지 방문 시작일 (형식: YYYY-MM-DD) |
-| `destinations[].end_date` | Y | DATE | 해당 여행지 방문 종료일 (형식: YYYY-MM-DD). `start_date`보다 이후여야 함 |
+| `destinations[].end_date` | Y | DATE | 해당 여행지 방문 종료일 (형식: YYYY-MM-DD). `start_date`와 같거나 이후여야 함 (당일치기 시 `start_date`와 동일한 날짜 허용) |
 | `budget` | N | Decimal | 예산 |
 | `adultCount` | Y | Int | 성인 수 (최솟값: 1) |
 | `childCount` | Y | Int | 아이 수 (최솟값: 0). `childAges`와 항상 함께 전달해야 함 |
@@ -96,12 +96,12 @@
 }
 ```
 
-**`destinations` 항목의 `startDate`가 `endDate` 이후이거나 같음**
+**`destinations` 항목의 `startDate`가 `endDate`보다 이후임**
 ```json
 {
   "status": 400,
   "error": "Bad Request",
-  "message": "Each destination's startDate must be before endDate. city=제주도"
+  "message": "Each destination's startDate must not be after endDate. city=제주도"
 }
 ```
 
@@ -179,7 +179,7 @@
 3. **User Check**: `users` 테이블에서 해당 `clerk_id` 사용자가 존재하는지 확인합니다. 존재하지 않으면 404를 반환합니다.
 4. **Validation**: 아래 항목을 검증합니다. 위반 시 400을 반환합니다.
    - `destinations`가 null이거나 비어 있으면 400을 반환합니다.
-   - 각 `destinations` 항목의 `city`가 비어 있거나, `startDate`/`endDate`가 null이거나, `startDate`가 `endDate` 이후이거나 같으면 400을 반환합니다.
+   - 각 `destinations` 항목의 `city`가 비어 있거나, `startDate`/`endDate`가 null이거나, `startDate`가 `endDate`보다 이후이면 400을 반환합니다. (`startDate`와 `endDate`가 같으면 당일치기로 허용)
    - 여러 목적지인 경우, 앞 항목의 `endDate`와 다음 항목의 `startDate`가 같지 않으면(날짜 연속성 위반) 400을 반환합니다.
    - `adultCount`가 1 미만이면 400을 반환합니다.
    - `childAges` 배열 길이가 `childCount`와 일치하지 않으면 400을 반환합니다.
@@ -195,7 +195,7 @@
 | --- | --- |
 | `id` | PK |
 | `clerk_id` | JWT `sub` 클레임 |
-| `name` | 자동 생성: `"{N-1}박 {N}일 {destinations[0].city} 여행"` (전체 여행 기간 = 마지막 목적지 `end_date` - 첫 번째 목적지 `start_date`) |
+| `name` | 자동 생성: 전체 여행 기간(마지막 목적지 `end_date` - 첫 번째 목적지 `start_date` + 1)이 1일(당일치기)이면 `"당일치기 {destinations[0].city} 여행"`, 그 외에는 `"{N-1}박 {N}일 {destinations[0].city} 여행"` |
 | `ai_summary` | `NULL` |
 | `preferences` | `NULL` |
 | `created_at` | 생성 일자 |

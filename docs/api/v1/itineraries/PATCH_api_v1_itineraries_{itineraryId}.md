@@ -48,7 +48,7 @@
 | `destinations` | N | Array | 변경할 여행지 목록. 전달 시 기존 목록 전체를 교체. 날짜 연속성 규칙을 따라야 함 |
 | `destinations[].city` | N | String | 여행지 이름 |
 | `destinations[].start_date` | N | DATE | 해당 여행지 방문 시작일 |
-| `destinations[].end_date` | N | DATE | 해당 여행지 방문 종료일. `start_date`보다 이후여야 함 |
+| `destinations[].end_date` | N | DATE | 해당 여행지 방문 종료일. `start_date`와 같거나 이후여야 함 (당일치기 시 `start_date`와 동일한 날짜 허용) |
 | `budget` | N | Decimal | 변경할 예산 |
 | `adultCount` | N | Int | 변경할 성인 수 (최솟값: 1) |
 | `childCount` | N | Int | 변경할 아이 수 (최솟값: 0). `childAges`와 항상 함께 전달해야 함 |
@@ -141,12 +141,12 @@
 }
 ```
 
-**`destinations` 항목의 `startDate`가 `endDate` 이후이거나 같음**
+**`destinations` 항목의 `startDate`가 `endDate`보다 이후임**
 ```json
 {
   "status": 400,
   "error": "Bad Request",
-  "message": "Each destination's startDate must be before endDate. city=제주도"
+  "message": "Each destination's startDate must not be after endDate. city=제주도"
 }
 ```
 
@@ -235,7 +235,7 @@
 6. **Validation**: 아래 순서로 검증합니다. 위반 시 400을 반환합니다.
    - `adultCount`가 1 미만이면 400을 반환합니다.
    - `childCount`와 `childAges` 중 하나만 요청에 포함된 경우 400을 반환합니다. `childAges`의 배열 길이가 `childCount`와 일치하지 않으면 400을 반환합니다.
-   - `destinations`가 포함된 경우: 각 항목의 `city`가 비어 있거나, `startDate`/`endDate`가 null이거나, `startDate`가 `endDate` 이후이거나 같으면 400을 반환합니다. 여러 목적지인 경우 날짜 연속성을 검증합니다.
+   - `destinations`가 포함된 경우: 각 항목의 `city`가 비어 있거나, `startDate`/`endDate`가 null이거나, `startDate`가 `endDate`보다 이후이면 400을 반환합니다. (`startDate`와 `endDate`가 같으면 당일치기로 허용) 여러 목적지인 경우 날짜 연속성을 검증합니다.
 7. **No Change Check**: 요청에 포함된 모든 필드가 기존 값과 동일하면 400을 반환합니다. `null` 필드는 "변경 없음"으로 취급합니다.
 8. **Snapshot**: 수정 전 `destinations`, `budget`, `adult_count`, `child_count`, `child_ages`, `total_days`, `start_date`, `end_date`, `day_plans` 값을 `itinerary_logs` 테이블에 저장합니다.
 9. **Update**: 요청에 포함된 필드만 `itineraries`에 업데이트하고 `updated_at`을 갱신합니다.

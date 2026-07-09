@@ -40,7 +40,7 @@
     ```json
     {
       "itineraryId": "aaa-111",
-      "name": "서울 3박 4일 여행",
+      "name": "3박 4일 서울 여행",
       "status": "draft",
       "destinations": [{"city": "서울", "start_date": "2026-05-01", "end_date": "2026-05-04"}],
       "budget": 500000.00,
