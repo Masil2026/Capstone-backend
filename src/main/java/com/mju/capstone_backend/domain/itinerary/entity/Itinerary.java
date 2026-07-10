@@ -86,10 +86,11 @@ public class Itinerary implements Persistable<UUID> {
         return it;
     }
 
-    public void updateBasicInfo(String destinationsJson, BigDecimal budget,
+    public void updateBasicInfo(String originJson, String destinationsJson, BigDecimal budget,
                                 Integer adultCount, Integer childCount, String childAgesJson,
                                 String updatedDayPlans,
                                 LocalDate effectiveStart, LocalDate effectiveEnd) {
+        if (originJson != null) this.origin = Json.of(originJson);
         if (destinationsJson != null) {
             this.destinations = Json.of(destinationsJson);
             this.startDate = effectiveStart;

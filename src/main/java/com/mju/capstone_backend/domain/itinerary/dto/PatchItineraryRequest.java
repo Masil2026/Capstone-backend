@@ -7,6 +7,7 @@ import java.util.List;
 
 @Schema(example = """
         {
+          "origin": {"city": "부산"},
           "destinations": [
             {"city": "도쿄", "start_date": "2026-05-01", "end_date": "2026-05-04"},
             {"city": "오사카", "start_date": "2026-05-04", "end_date": "2026-05-06"}
@@ -18,6 +19,7 @@ import java.util.List;
         }
         """)
 public record PatchItineraryRequest(
+        OriginItem origin,
         List<DestinationItem> destinations,
         BigDecimal budget,
         Integer adultCount,

@@ -25,6 +25,9 @@ public class ItineraryLog implements Persistable<UUID> {
     private UUID itineraryId;
 
     @Getter(AccessLevel.NONE)
+    private Json origin;
+
+    @Getter(AccessLevel.NONE)
     private Json destinations;
 
     private BigDecimal budget;
@@ -51,6 +54,7 @@ public class ItineraryLog implements Persistable<UUID> {
         return newEntity;
     }
 
+    public String getOrigin()       { return origin        != null ? origin.asString()       : null; }
     public String getDestinations() { return destinations != null ? destinations.asString() : null; }
     public String getChildAges()    { return childAges    != null ? childAges.asString()    : null; }
     public String getDayPlans()     { return dayPlans     != null ? dayPlans.asString()     : null; }
@@ -59,6 +63,8 @@ public class ItineraryLog implements Persistable<UUID> {
         ItineraryLog log = new ItineraryLog();
         log.id = UUID.randomUUID();
         log.itineraryId = itinerary.getId();
+        String origin = itinerary.getOrigin();
+        log.origin = origin != null ? Json.of(origin) : null;
         String dest = itinerary.getDestinations();
         log.destinations = dest != null ? Json.of(dest) : null;
         log.budget = itinerary.getBudget();
