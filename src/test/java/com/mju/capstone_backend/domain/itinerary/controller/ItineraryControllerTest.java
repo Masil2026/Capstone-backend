@@ -150,6 +150,7 @@ class ItineraryControllerTest {
                 List.of(
                         new GetItineraryLogsResponse.LogItem(
                                 UUID.randomUUID(),
+                                new OriginItem("서울"),
                                 List.of(new DestinationItem("서울", LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 4))),
                                 BigDecimal.valueOf(600000), 2, 1, List.of(5),
                                 4, LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 4),
@@ -157,6 +158,7 @@ class ItineraryControllerTest {
                         ),
                         new GetItineraryLogsResponse.LogItem(
                                 UUID.randomUUID(),
+                                new OriginItem("서울"),
                                 List.of(new DestinationItem("서울", LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 4))),
                                 BigDecimal.valueOf(500000), 2, 1, List.of(5),
                                 4, LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 4),
@@ -199,6 +201,7 @@ class ItineraryControllerTest {
     void patchItinerary_withValidJwt_returns200() {
         PatchItineraryResponse response = new PatchItineraryResponse(
                 ITINERARY_ID,
+                new OriginItem("서울"),
                 List.of(new DestinationItem("서울", LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 3))),
                 LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 3),
                 3, BigDecimal.valueOf(300000),
@@ -206,7 +209,7 @@ class ItineraryControllerTest {
                 OffsetDateTime.now()
         );
         PatchItineraryRequest request = new PatchItineraryRequest(
-                null, BigDecimal.valueOf(300000), null, null, null);
+                null, null, BigDecimal.valueOf(300000), null, null, null);
 
         when(itineraryService.patchItinerary(CLERK_ID, ITINERARY_ID, request))
                 .thenReturn(Mono.just(response));
