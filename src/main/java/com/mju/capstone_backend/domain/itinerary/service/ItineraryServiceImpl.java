@@ -488,9 +488,9 @@ public class ItineraryServiceImpl implements ItineraryService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Each destination must have startDate and endDate.");
             }
-            if (!dest.startDate().isBefore(dest.endDate())) {
+            if (dest.startDate().isAfter(dest.endDate())) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Each destination's startDate must be before endDate. city=" + dest.city());
+                        "Each destination's startDate must not be after endDate. city=" + dest.city());
             }
         }
         for (int i = 0; i < destinations.size() - 1; i++) {

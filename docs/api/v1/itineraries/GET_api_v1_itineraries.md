@@ -36,7 +36,7 @@
   "itineraries": [
     {
       "itineraryId": "aaa-111",
-      "name": "서울 당일치기",
+      "name": "당일치기 서울 여행",
       "status": "draft",
       "destinations": [{"city": "서울", "start_date": "2026-04-15", "end_date": "2026-04-15"}],
       "totalDays": 1,
@@ -44,7 +44,7 @@
     },
     {
       "itineraryId": "bbb-222",
-      "name": "제주도 3박 4일",
+      "name": "3박 4일 제주 여행",
       "status": "draft",
       "destinations": [{"city": "제주", "start_date": "2026-05-10", "end_date": "2026-05-13"}],
       "totalDays": 4,
@@ -52,7 +52,7 @@
     },
     {
       "itineraryId": "ccc-333",
-      "name": "부산 2박 3일",
+      "name": "2박 3일 부산 여행",
       "status": "completed",
       "destinations": [{"city": "부산", "start_date": "2026-03-20", "end_date": "2026-03-22"}],
       "totalDays": 3,
