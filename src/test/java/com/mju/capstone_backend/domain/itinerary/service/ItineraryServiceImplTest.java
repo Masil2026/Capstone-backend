@@ -127,7 +127,8 @@ class ItineraryServiceImplTest {
         Itinerary itinerary = mockItinerary(ITINERARY_ID, ROOM_ID,
                 "{\"2026-05-01\":[" +
                 "{\"time\":\"12:00 ~ 14:00\",\"plan_name\":\"점심\",\"place\":\"식당\",\"note\":\"\",\"status\":\"todo\"}," +
-                "{\"time\":\"09:00 ~ 11:00\",\"plan_name\":\"경복궁\",\"place\":\"경복궁\",\"note\":\"\",\"status\":\"done\"}" +
+                "{\"time\":\"09:00 ~ 11:00\",\"plan_name\":\"경복궁\",\"place\":\"경복궁\",\"note\":\"\",\"status\":\"done\"," +
+                "\"image_url\":\"http://img/gbg.jpg\",\"url\":\"http://booking/gbg\"}" +
                 "]}");
         ChatRoom chatRoom = mockChatRoom(ROOM_ID, CLERK_ID, "서울 3박 4일 여행");
 
@@ -143,6 +144,9 @@ class ItineraryServiceImplTest {
                     assertThat(items).hasSize(2);
                     assertThat(items.get(0).get("index")).isEqualTo(0);
                     assertThat(items.get(0).get("plan_name")).isEqualTo("경복궁");
+                    // 조회 응답에 image_url·url이 그대로 직렬화되는지 확인
+                    assertThat(items.get(0).get("image_url")).isEqualTo("http://img/gbg.jpg");
+                    assertThat(items.get(0).get("url")).isEqualTo("http://booking/gbg");
                     assertThat(items.get(1).get("index")).isEqualTo(1);
                     assertThat(items.get(1).get("plan_name")).isEqualTo("점심");
                 })
@@ -519,6 +523,40 @@ class ItineraryServiceImplTest {
 
         verify(itineraryLogRepository).save(any(ItineraryLog.class));
         verify(itineraryRepository).save(itinerary);
+    }
+
+    @Test
+    @DisplayName("day_plans 수정 - image_url·url을 보존하고, 없는 아이템은 null로 저장")
+    void patchDayPlans_preservesImageUrlAndUrl() {
+        Itinerary itinerary = mockItinerary(ITINERARY_ID, ROOM_ID, "{\"2026-05-01\":[]}");
+        ChatRoom chatRoom = mockChatRoom(ROOM_ID, CLERK_ID, "서울 여행");
+
+        Map<String, List<Map<String, Object>>> requestDayPlans = Map.of(
+                "2026-05-01", List.of(
+                        Map.of("plan_name", "경복궁", "time", "09:00 ~ 10:00", "place", "경복궁", "note", "",
+                                "image_url", "http://img/gbg.jpg", "url", "http://booking/gbg"),
+                        Map.of("plan_name", "점심", "time", "12:00 ~ 13:00", "place", "식당", "note", "")
+                )
+        );
+
+        when(userRepository.existsById(CLERK_ID)).thenReturn(Mono.just(true));
+        when(itineraryRepository.findById(ITINERARY_ID)).thenReturn(Mono.just(itinerary));
+        when(chatRoomRepository.findById(ROOM_ID)).thenReturn(Mono.just(chatRoom));
+        when(itineraryLogRepository.save(any(ItineraryLog.class))).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
+        when(itineraryRepository.save(any(Itinerary.class))).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
+
+        StepVerifier.create(itineraryService.patchDayPlans(CLERK_ID, ITINERARY_ID, new PatchDayPlansRequest(requestDayPlans)))
+                .assertNext(res -> {
+                    List<Map<String, Object>> items = res.dayPlans().get("2026-05-01");
+                    // 이미지·링크가 있는 아이템 → 보존
+                    assertThat(items.get(0).get("image_url")).isEqualTo("http://img/gbg.jpg");
+                    assertThat(items.get(0).get("url")).isEqualTo("http://booking/gbg");
+                    // 없는 아이템 → 키는 존재하되 null
+                    assertThat(items.get(1)).containsKey("image_url");
+                    assertThat(items.get(1).get("image_url")).isNull();
+                    assertThat(items.get(1).get("url")).isNull();
+                })
+                .verifyComplete();
     }
 
     @Test
