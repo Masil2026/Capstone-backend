@@ -10,6 +10,7 @@ public record GetItinerariesResponse(List<ItineraryItem> itineraries) {
             UUID itineraryId,
             String name,
             String status,
+            OriginItem origin,
             List<DestinationItem> destinations,
             int totalDays,
             LocalDate startDate

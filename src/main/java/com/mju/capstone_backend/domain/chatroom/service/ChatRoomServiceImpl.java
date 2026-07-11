@@ -53,6 +53,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                 .filter(Boolean::booleanValue)
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found. Please sign up first.")))
                 .flatMap(ignored -> {
+                    ItineraryServiceImpl.validateOrigin(request.origin());
                     ItineraryServiceImpl.validateDestinations(request.destinations());
 
                     if (request.childAges().size() != request.childCount()) {
@@ -69,9 +70,11 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                             : (totalDays - 1) + "박 " + totalDays + "일 " + destinations.get(0).city() + " 여행";
 
                     String destinationsJson;
+                    String originJson;
                     String childAgesJson;
                     try {
                         destinationsJson = objectMapper.writeValueAsString(destinations);
+                        originJson = objectMapper.writeValueAsString(request.origin());
                         childAgesJson = objectMapper.writeValueAsString(request.childAges());
                     } catch (Exception e) {
                         return Mono.error(new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create chat room."));
@@ -84,6 +87,7 @@ public class ChatRoomServiceImpl implements ChatRoomService {
                                 Itinerary itinerary = Itinerary.of(
                                         savedRoom.getId(),
                                         destinationsJson,
+                                        originJson,
                                         request.budget(),
                                         request.adultCount(),
                                         request.childCount(),

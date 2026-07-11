@@ -7,6 +7,7 @@ public record ItinerarySummary(
         UUID id,
         String name,
         String status,
+        String origin,
         String destinations,
         int totalDays,
         LocalDate startDate

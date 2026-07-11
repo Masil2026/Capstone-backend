@@ -29,6 +29,9 @@ public class Itinerary implements Persistable<UUID> {
     @Getter(AccessLevel.NONE)
     private Json destinations;
 
+    @Getter(AccessLevel.NONE)
+    private Json origin;
+
     private LocalDate startDate;
     private LocalDate endDate;
     private int totalDays;
@@ -56,16 +59,18 @@ public class Itinerary implements Persistable<UUID> {
     }
 
     public String getDestinations() { return destinations != null ? destinations.asString() : null; }
+    public String getOrigin()       { return origin        != null ? origin.asString()       : null; }
     public String getChildAges()    { return childAges    != null ? childAges.asString()    : null; }
     public String getDayPlans()     { return dayPlans     != null ? dayPlans.asString()     : null; }
 
-    public static Itinerary of(UUID roomId, String destinationsJson,
+    public static Itinerary of(UUID roomId, String destinationsJson, String originJson,
                                BigDecimal budget, int adultCount, int childCount, String childAgesJson,
                                LocalDate startDate, LocalDate endDate) {
         Itinerary it = new Itinerary();
         it.id = UUID.randomUUID();
         it.roomId = roomId;
         it.destinations = Json.of(destinationsJson);
+        it.origin = Json.of(originJson);
         it.startDate = startDate;
         it.endDate = endDate;
         it.totalDays = (int) ChronoUnit.DAYS.between(startDate, endDate) + 1;
@@ -81,10 +86,11 @@ public class Itinerary implements Persistable<UUID> {
         return it;
     }
 
-    public void updateBasicInfo(String destinationsJson, BigDecimal budget,
+    public void updateBasicInfo(String originJson, String destinationsJson, BigDecimal budget,
                                 Integer adultCount, Integer childCount, String childAgesJson,
                                 String updatedDayPlans,
                                 LocalDate effectiveStart, LocalDate effectiveEnd) {
+        if (originJson != null) this.origin = Json.of(originJson);
         if (destinationsJson != null) {
             this.destinations = Json.of(destinationsJson);
             this.startDate = effectiveStart;

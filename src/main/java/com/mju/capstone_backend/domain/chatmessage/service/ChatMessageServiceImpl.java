@@ -396,7 +396,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                             itineraryLogRepository.save(ItineraryLog.of(itinerary))
                                     .then(Mono.defer(() -> {
                                         itinerary.updateBasicInfo(
-                                                finalDestJson, change.budget(),
+                                                null, finalDestJson, change.budget(),
                                                 change.adultCount(),
                                                 change.childCount(), finalChildAgesJson,
                                                 updatedDayPlans,

@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public record PatchItineraryResponse(
         UUID itineraryId,
+        OriginItem origin,
         List<DestinationItem> destinations,
         LocalDate startDate,
         LocalDate endDate,

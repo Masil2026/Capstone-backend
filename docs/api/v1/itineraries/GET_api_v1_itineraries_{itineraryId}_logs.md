@@ -45,6 +45,7 @@
   "logs": [
     {
       "logId": "log-001",
+      "origin": {"city": "부산"},
       "destinations": [{"city": "서울", "start_date": "2026-05-01", "end_date": "2026-05-04"}],
       "budget": 500000.00,
       "adultCount": 2,
@@ -63,6 +64,7 @@
     },
     {
       "logId": "log-002",
+      "origin": {"city": "부산"},
       "destinations": [{"city": "서울", "start_date": "2026-05-01", "end_date": "2026-05-04"}],
       "budget": 600000.00,
       "adultCount": 2,
@@ -91,6 +93,7 @@
 | Field | DB Column | Type | Nullable | Description |
 | --- | --- | --- | --- | --- |
 | `logId` | `id` | UUID | N | 로그 고유 ID |
+| `origin` | `origin` | Object | Y | 수정 전 출발지 스냅샷 |
 | `destinations` | `destinations` | Array | Y | 수정 전 여행지 목록 스냅샷 |
 | `budget` | `budget` | Number | Y | 수정 전 예산 스냅샷 |
 | `adultCount` | `adult_count` | Integer | Y | 수정 전 어른 수 스냅샷 |
@@ -103,6 +106,8 @@
 | `createdAt` | `created_at` | String (ISO 8601) | N | 스냅샷 저장 시각 (= 수정 발생 시각) |
 
 > `destinations` ~ `endDate` 9개 필드는 `itinerary_logs` 스키마상 nullable이지만, 스냅샷 저장 시 9개 필드 전체가 항상 함께 저장되므로 실제 응답에서 `null`이 되지 않습니다.
+>
+> `origin`은 예외입니다. origin 스냅샷 지원 이전(`V15` 마이그레이션 이전)에 생성된 로그는 `origin`이 `null`일 수 있습니다.
 
 > **`index`에 대하여**: `dayPlans` 아이템에 `index`는 포함되지 않습니다. `index`는 DB에 저장되지 않으며, 일정 상세 조회 및 아이템 상태 수정 API에서만 동적으로 부여됩니다.
 
@@ -169,6 +174,7 @@
 | --- | --- | --- |
 | `id` | UUID | 로그 고유 ID |
 | `itinerary_id` | UUID | 대상 일정 ID (FK) |
+| `origin` | JSONB | 수정 전 출발지 스냅샷 |
 | `destinations` | JSONB | 수정 전 여행지 목록 스냅샷 |
 | `budget` | DECIMAL(12,2) | 수정 전 예산 스냅샷 |
 | `adult_count` | INT | 수정 전 어른 수 스냅샷 |

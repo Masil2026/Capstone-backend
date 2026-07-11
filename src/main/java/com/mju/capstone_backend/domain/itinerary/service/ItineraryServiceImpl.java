@@ -7,6 +7,7 @@ import com.mju.capstone_backend.domain.itinerary.dto.DestinationItem;
 import com.mju.capstone_backend.domain.itinerary.dto.GetItinerariesResponse;
 import com.mju.capstone_backend.domain.itinerary.dto.GetItineraryLogsResponse;
 import com.mju.capstone_backend.domain.itinerary.dto.GetItineraryResponse;
+import com.mju.capstone_backend.domain.itinerary.dto.OriginItem;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchDayPlansRequest;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchDayPlansResponse;
 import com.mju.capstone_backend.domain.itinerary.dto.PatchItemStatusRequest;
@@ -61,6 +62,7 @@ public class ItineraryServiceImpl implements ItineraryService {
                         s.id(),
                         s.name(),
                         s.status(),
+                        parseOrigin(s.origin()),
                         parseDestinations(s.destinations()),
                         s.totalDays(),
                         s.startDate()
@@ -92,6 +94,7 @@ public class ItineraryServiceImpl implements ItineraryService {
                                             itinerary.getId(),
                                             chatRoom.getName(),
                                             itinerary.getStatus(),
+                                            parseOrigin(itinerary.getOrigin()),
                                             parseDestinations(itinerary.getDestinations()),
                                             itinerary.getBudget(),
                                             itinerary.getAdultCount(),
@@ -130,6 +133,7 @@ public class ItineraryServiceImpl implements ItineraryService {
                                     return itineraryLogRepository.findByItineraryIdOrderByCreatedAtDesc(itineraryId)
                                             .map(log -> new GetItineraryLogsResponse.LogItem(
                                                     log.getId(),
+                                                    parseOrigin(log.getOrigin()),
                                                     parseDestinations(log.getDestinations()),
                                                     log.getBudget(),
                                                     log.getAdultCount(),
@@ -168,6 +172,9 @@ public class ItineraryServiceImpl implements ItineraryService {
                                                 "You do not have permission to update this itinerary."));
                                     }
 
+                                    if (request.origin() != null) {
+                                        validateOrigin(request.origin());
+                                    }
                                     if (request.adultCount() != null && request.adultCount() < 1) {
                                         return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "adultCount must be at least 1."));
                                     }
@@ -187,7 +194,10 @@ public class ItineraryServiceImpl implements ItineraryService {
 
                                     List<DestinationItem> currentDestinations = parseDestinations(itinerary.getDestinations());
                                     List<Integer> currentChildAges = parseChildAges(itinerary.getChildAges());
+                                    OriginItem currentOrigin = parseOrigin(itinerary.getOrigin());
 
+                                    boolean originUnchanged = request.origin() == null ||
+                                            request.origin().equals(currentOrigin);
                                     boolean destinationsUnchanged = request.destinations() == null ||
                                             request.destinations().equals(currentDestinations);
                                     boolean budgetUnchanged = request.budget() == null ||
@@ -197,7 +207,7 @@ public class ItineraryServiceImpl implements ItineraryService {
                                             (request.childCount() == itinerary.getChildCount() &&
                                              Objects.equals(request.childAges(), currentChildAges));
 
-                                    if (destinationsUnchanged && budgetUnchanged && adultCountUnchanged && childInfoUnchanged) {
+                                    if (originUnchanged && destinationsUnchanged && budgetUnchanged && adultCountUnchanged && childInfoUnchanged) {
                                         return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST,
                                                 "No changes detected. The submitted values are identical to the current data."));
                                     }
@@ -215,9 +225,13 @@ public class ItineraryServiceImpl implements ItineraryService {
                                             ? adjustDayPlans(itinerary.getDayPlans(), effectiveStart, effectiveEnd)
                                             : null;
 
+                                    String originJson = null;
                                     String destinationsJson = null;
                                     String childAgesJson = null;
                                     try {
+                                        if (request.origin() != null) {
+                                            originJson = objectMapper.writeValueAsString(request.origin());
+                                        }
                                         if (request.destinations() != null) {
                                             destinationsJson = objectMapper.writeValueAsString(request.destinations());
                                         }
@@ -228,6 +242,7 @@ public class ItineraryServiceImpl implements ItineraryService {
                                         return Mono.error(new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to update itinerary."));
                                     }
 
+                                    final String finalOriginJson = originJson;
                                     final String finalDestinationsJson = destinationsJson;
                                     final String finalChildAgesJson = childAgesJson;
                                     final LocalDate finalEffectiveStart = effectiveStart;
@@ -236,7 +251,7 @@ public class ItineraryServiceImpl implements ItineraryService {
                                     return itineraryLogRepository.save(ItineraryLog.of(itinerary))
                                             .then(Mono.defer(() -> {
                                                 itinerary.updateBasicInfo(
-                                                        finalDestinationsJson, request.budget(),
+                                                        finalOriginJson, finalDestinationsJson, request.budget(),
                                                         request.adultCount(),
                                                         request.childCount(), finalChildAgesJson,
                                                         updatedDayPlans,
@@ -245,6 +260,7 @@ public class ItineraryServiceImpl implements ItineraryService {
                                             }))
                                             .map(saved -> new PatchItineraryResponse(
                                                     itinerary.getId(),
+                                                    parseOrigin(itinerary.getOrigin()),
                                                     parseDestinations(itinerary.getDestinations()),
                                                     itinerary.getStartDate(),
                                                     itinerary.getEndDate(),
@@ -476,6 +492,17 @@ public class ItineraryServiceImpl implements ItineraryService {
                 );
     }
 
+    // ─── origin 유효성 검사 ────────────────────────────────────────────────────
+
+    public static void validateOrigin(OriginItem origin) {
+        if (origin == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "origin is required.");
+        }
+        if (origin.city() == null || origin.city().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "origin.city must not be blank.");
+        }
+    }
+
     // ─── destinations 유효성 검사 ──────────────────────────────────────────────
 
     public static void validateDestinations(List<DestinationItem> destinations) {
@@ -522,6 +549,15 @@ public class ItineraryServiceImpl implements ItineraryService {
             return objectMapper.readValue(json, new TypeReference<>() {});
         } catch (Exception e) {
             return List.of();
+        }
+    }
+
+    public OriginItem parseOrigin(String json) {
+        if (json == null) return null;
+        try {
+            return objectMapper.readValue(json, OriginItem.class);
+        } catch (Exception e) {
+            return null;
         }
     }
 

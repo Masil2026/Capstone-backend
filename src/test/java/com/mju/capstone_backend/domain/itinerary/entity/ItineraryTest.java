@@ -20,6 +20,7 @@ class ItineraryTest {
         Itinerary itinerary = Itinerary.of(
                 UUID.randomUUID(),
                 "[{\"city\":\"도쿄\",\"start_date\":\"2026-05-01\",\"end_date\":\"2026-05-01\"}]",
+                "{\"city\":\"서울\"}",
                 BigDecimal.valueOf(200000), 1, 0, "[]",
                 date, date
         );
@@ -37,6 +38,7 @@ class ItineraryTest {
         Itinerary itinerary = Itinerary.of(
                 UUID.randomUUID(),
                 "[{\"city\":\"도쿄\",\"start_date\":\"2026-05-01\",\"end_date\":\"2026-05-03\"}]",
+                "{\"city\":\"서울\"}",
                 BigDecimal.valueOf(500000), 2, 0, "[]",
                 start, end
         );
