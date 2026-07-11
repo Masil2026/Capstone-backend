@@ -1,6 +1,5 @@
 package com.mju.capstone_backend.domain.user.service;
 
-import com.mju.capstone_backend.domain.user.entity.User;
 import com.mju.capstone_backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,14 +14,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Mono<Void> signup(String clerkId) {
-        return userRepository.existsById(clerkId)
-                .flatMap(exists -> exists ? Mono.empty() : userRepository.save(User.of(clerkId)).then());
+        return userRepository.insertIfNotExists(clerkId);
     }
 
     @Override
     public Mono<Void> deleteAccount(String clerkId) {
         return userRepository.existsById(clerkId)
                 .flatMap(exists -> exists ? userRepository.deleteById(clerkId) : Mono.empty())
-                .then(clerkApiClient.deleteUser(clerkId));
+                .then(Mono.defer(() -> clerkApiClient.deleteUser(clerkId)));
     }
 }
