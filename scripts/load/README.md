@@ -44,6 +44,28 @@ k6 version
 > 참고: 스크립트 `setup()`은 `POST /api/v1/users/signup`으로 유저 행을 먼저 보장한다
 > (`chat_rooms.clerk_id` → `users` FK 때문). 별도 시드 작업은 필요 없다.
 
+### 모니터링 스택 (선택)
+
+k6 지표를 **Grafana 대시보드로 실시간 시각화**하고 싶을 때만 필요하다. **전체 기동 순서(DB → 모니터링
+스택 → 백엔드 → k6)·대시보드 구성·트러블슈팅은 [`monitoring/README.md`](../../monitoring/README.md)가 정본**이다.
+여기서는 부하 스크립트 관점의 요점만 정리한다.
+
+- 두 축을 함께 본다: **(A)** 백엔드 `/actuator/prometheus` 스크레이프(CPU/Heap/GC·R2DBC 풀) +
+  **(B)** k6가 remote-write로 미는 rps·p95·에러율·VU.
+- **(A) 앱 설정은 이미 dev 프로파일에 있다** — `application-dev.properties`가 `prometheus` 엔드포인트를
+  노출하고 `DevSecurityConfig`가 `/actuator/**`를 인증 없이 연다(prod엔 없음). 그래서 **`dev`로 띄우면 추가 설정 불필요**.
+- **(B) k6 전송은 `loadrun.sh` 전용이 아니다** — 수동 `k6 run`에도 `--out experimental-prometheus-rw`만
+  붙이면 된다(`loadrun.sh`는 이 플래그를 자동으로 넣어줄 뿐):
+  ```bash
+  K6_PROMETHEUS_RW_SERVER_URL=http://localhost:9090/api/v1/write \
+  K6_PROMETHEUS_RW_TREND_STATS="p(90),p(95),p(99)" \
+    k6 run --out experimental-prometheus-rw \
+    -e ENDPOINT=get-itinerary -e MODE=vus -e VUS=400 -e DURATION=60s scripts/load/stress-endpoint.js
+  ```
+- 그래프가 채워지려면 스크레이프(5s) 기준 **`DURATION`을 60s 이상**으로 잡는다.
+
+> 대시보드 없이 터미널 요약만으로 충분하면 이 절을 건너뛰고 §3의 수동 `k6 run`을 그대로 쓴다.
+
 ---
 
 ## 3. 실행 방법
@@ -91,6 +113,38 @@ for V in 100 200 400 800; do k6 run -e ENDPOINT=patch-dayplans -e MODE=vus -e VU
 > **자동 정리**: 모든 부하 스크립트는 `teardown()`에서 테스트가 생성한 채팅방(+cascade로 일정·메시지)을
 > 전부 삭제한다. 정상 종료 시 별도 정리가 필요 없다. k6가 중간에 강제 종료(Ctrl+C 등)되면
 > teardown이 실행되지 않을 수 있으므로, 그때만 `cleanup.js`로 수동 정리한다.
+
+### 자동 스윕 러너 (권장) — `loadrun.sh`
+
+위 수동 루프(§3의 for 문)를 **핵심 5종 × 두 축(RPS/VU)** 전부 한 번에 돌리는 러너다.
+[모니터링 스택](#모니터링-스택-선택)(→ 정본 [`monitoring/README.md`](../../monitoring/README.md))을 켜고
+지표를 Prometheus로 전송하며(수동 `k6 run`으로도 동일 전송 가능), `20260715-monitored.md` 보고서가 이 스크립트로 생성됐다.
+
+```bash
+# 백그라운드 분리(detach) 실행 — 터미널/VSCode가 죽어도 스윕은 완주. PID·로그 경로 출력 후 즉시 반환.
+bash scripts/load/loadrun.sh
+# 진행 상황 확인
+tail -f scripts/load/results/auto/run.log
+# 이전 결과·마커 전부 지우고 처음부터
+FRESH=1 bash scripts/load/loadrun.sh
+# 중단 (앞의 '-'는 프로세스그룹 전체 = 러너+k6 동반 종료)
+kill -TERM -<PID>
+```
+
+- **전제**: DB·모니터링·백엔드를 **직접 띄운 상태**여야 한다(러너는 서버/도커를 올리지 않고 헬스만 확인).
+- **이어하기**: 레벨별 `results/auto/{label}.done` 마커로, 중간에 끊겨도 완료 레벨은 건너뛴다.
+- **안전장치**: RPS 모드 `MAXVUS=1200` 캡(포화 시 VU 폭증=메모리 폭탄 차단), 헬스 실패 시 남은 스윕 중단.
+- 결과 JSON은 `results/auto/{label}.json`(`--summary-export`)에 레벨별로 쌓인다.
+
+### 결과 요약 추출 — `summarize.sh`
+
+`loadrun.sh`가 쌓은 `results/auto/*.json`에서 보고서 표에 붙일 값(달성 RPS·p95·avg·에러율·drop/vus_max)을 뽑는다.
+`name` 태그 하위지표만 사용해 teardown 정리 요청을 제외한 **순수 지표**를 계산한다(달성 RPS = count/부하창).
+
+```bash
+bash scripts/load/summarize.sh          # results/auto/ 전체
+bash scripts/load/summarize.sh 43-iti   # 라벨 prefix 필터 (예: get-itinerary만)
+```
 
 ### 환경변수 오버라이드
 
@@ -193,5 +247,10 @@ k6 run --summary-export scripts/load/results/latest-summary.json -e ENDPOINT=get
 
 ## 7. 실행 결과 문서화
 
-측정 후 `results/RESULTS.md`에 환경·시나리오·핵심 지표(p95/p99, 에러율, RPS)를 기록한다.
-`--summary-export`로 뽑은 JSON은 `results/`에 함께 보관한다.
+- **`results/RESULTS.md`** — 새 측정 시 복사해 채우는 **빈 템플릿**이다(기록 파일 아님).
+  환경·시나리오·핵심 지표(p95/p99, 에러율, RPS) 표를 담고 있다.
+- **실제 보고서**는 `results/{날짜}-{설명}.md`로 저장한다. 현재까지:
+  - [`20260714-233224-endpoints.md`](results/20260714-233224-endpoints.md) — 순수 k6(모니터링 없음), 핵심 5종 한계 탐색
+  - [`20260715-monitored.md`](results/20260715-monitored.md) — Prometheus+Grafana 연동, 동일 레벨 재현 + 오버헤드 비교
+- `--summary-export` JSON은 `results/`에 함께 보관한다(`loadrun.sh` 사용 시 `results/auto/`에 레벨별 자동 저장,
+  `summarize.sh`로 표 값 추출). 대시보드 스크린샷은 `results/img/`에 둔다.

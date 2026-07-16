@@ -8,6 +8,9 @@ import { getToken, cleanup } from './lib/common.js';
 export const options = {
   vus: 1,
   iterations: 1,
+  // cleanup()의 http.batch 병렬 삭제가 실제 동시 실행되도록(기본 host당 6) 상향
+  batch: 40,
+  batchPerHost: 40,
 };
 
 export default function () {

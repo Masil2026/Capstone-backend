@@ -1,0 +1,166 @@
+{
+    "metrics": {
+        "http_req_blocked": {
+            "p(90)": 0.002,
+            "p(95)": 0.003,
+            "avg": 0.01201890353669062,
+            "min": 0,
+            "med": 0.001,
+            "max": 31.355
+        },
+        "vus_max": {
+            "value": 1200,
+            "min": 1200,
+            "max": 1200
+        },
+        "http_req_failed{name:GET /chat-rooms}": {
+            "fails": 240003,
+            "passes": 0,
+            "thresholds": {
+                "rate>=0": false
+            },
+            "value": 0
+        },
+        "http_req_duration{name:GET /chat-rooms}": {
+            "p(95)": 11.46379999999998,
+            "avg": 2.7032200305828997,
+            "min": 0.838,
+            "med": 1.372,
+            "max": 68.882,
+            "p(90)": 3.868,
+            "thresholds": {
+                "p(95)>=0": false
+            }
+        },
+        "data_received": {
+            "count": 147603610,
+            "rate": 4793583.315620351
+        },
+        "http_req_duration": {
+            "avg": 2.7064310814639,
+            "min": 0.838,
+            "med": 1.372,
+            "max": 760.682,
+            "p(90)": 3.868,
+            "p(95)": 11.468299999999978
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 2.7064310814639,
+            "min": 0.838,
+            "med": 1.372,
+            "max": 760.682,
+            "p(90)": 3.868,
+            "p(95)": 11.468299999999978
+        },
+        "http_req_connecting": {
+            "avg": 0.00973828789040366,
+            "min": 0,
+            "med": 0,
+            "max": 31.309,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "data_sent": {
+            "count": 38641526,
+            "rate": 1254924.4176596357
+        },
+        "vus": {
+            "value": 11,
+            "min": 8,
+            "max": 181
+        },
+        "http_reqs{name:GET /chat-rooms}": {
+            "count": 240003,
+            "rate": 7794.351211998344,
+            "thresholds": {
+                "count>=0": false
+            }
+        },
+        "iteration_duration": {
+            "min": 0.860667,
+            "med": 1.409084,
+            "max": 70.181083,
+            "p(90)": 3.910459,
+            "p(95)": 11.5565,
+            "avg": 2.7515533443402465
+        },
+        "http_reqs": {
+            "rate": 7794.513592285508,
+            "count": 240008
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_sending": {
+            "p(90)": 0.008,
+            "p(95)": 0.015,
+            "avg": 0.008354496516764957,
+            "min": 0.001,
+            "med": 0.003,
+            "max": 11.818
+        },
+        "http_req_receiving": {
+            "min": 0.003,
+            "med": 0.009,
+            "max": 7.697,
+            "p(90)": 0.03,
+            "p(95)": 0.04,
+            "avg": 0.013685885470488034
+        },
+        "checks": {
+            "passes": 240001,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 240008,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_waiting": {
+            "avg": 2.6843906994766735,
+            "min": 0.829,
+            "med": 1.353,
+            "max": 760.595,
+            "p(90)": 3.8493000000000057,
+            "p(95)": 11.42364999999999
+        },
+        "iterations": {
+            "count": 240001,
+            "rate": 7794.286259883479
+        }
+    },
+    "setup_data": {
+        "token": "dev-load-test-user",
+        "pool": [
+            {
+                "itineraryId": "59e6afa3-cdd3-4e2d-91c1-6cb5004af515",
+                "reservationId": null,
+                "roomId": "fdcea03c-12c2-4411-9463-18645422cb1c"
+            }
+        ]
+    },
+    "root_group": {
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "200": {
+                    "name": "200",
+                    "path": "::200",
+                    "id": "4230b0c1b1cb609da348fcf04ffd96f4",
+                    "passes": 240001,
+                    "fails": 0
+                }
+            },
+        "name": "",
+        "path": ""
+    }
+}

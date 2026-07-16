@@ -1,0 +1,661 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "200": {
+                    "name": "200",
+                    "path": "::200",
+                    "id": "4230b0c1b1cb609da348fcf04ffd96f4",
+                    "passes": 102274,
+                    "fails": 0
+                }
+            }
+    },
+    "metrics": {
+        "http_req_tls_handshaking": {
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0
+        },
+        "iterations": {
+            "rate": 3184.252902049524,
+            "count": 102274
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(90)": 33.481300000000005,
+            "p(95)": 36.54029999999999,
+            "avg": 29.21882580085442,
+            "min": 0.378,
+            "med": 28.122,
+            "max": 650.777
+        },
+        "data_received": {
+            "count": 67430285,
+            "rate": 2099410.218601761
+        },
+        "vus": {
+            "value": 0,
+            "min": 0,
+            "max": 100
+        },
+        "http_req_duration{name:PATCH /itineraries/{id}/day-plans}": {
+            "med": 28.131,
+            "max": 94.929,
+            "p(90)": 33.485,
+            "p(95)": 36.534349999999996,
+            "avg": 29.252631558363305,
+            "min": 16.837,
+            "thresholds": {
+                "p(95)>=0": false
+            }
+        },
+        "http_req_connecting": {
+            "max": 5.185,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.001133010977012615,
+            "min": 0,
+            "med": 0
+        },
+        "http_req_receiving": {
+            "min": 0.005,
+            "med": 0.017,
+            "max": 9.053,
+            "p(90)": 0.034,
+            "p(95)": 0.044,
+            "avg": 0.022329125153537677
+        },
+        "checks": {
+            "passes": 102274,
+            "fails": 0,
+            "value": 1
+        },
+        "data_sent": {
+            "count": 36155779,
+            "rate": 1125693.1791717468
+        },
+        "http_req_sending": {
+            "avg": 0.008035806898162733,
+            "min": 0.001,
+            "med": 0.005,
+            "max": 7.104,
+            "p(90)": 0.01,
+            "p(95)": 0.013
+        },
+        "http_reqs{name:PATCH /itineraries/{id}/day-plans}": {
+            "rate": 3184.252902049524,
+            "count": 102274,
+            "thresholds": {
+                "count>=0": false
+            }
+        },
+        "vus_max": {
+            "value": 100,
+            "min": 100,
+            "max": 100
+        },
+        "http_req_failed{name:PATCH /itineraries/{id}/day-plans}": {
+            "passes": 0,
+            "fails": 102274,
+            "thresholds": {
+                "rate>=0": false
+            },
+            "value": 0
+        },
+        "http_reqs": {
+            "count": 102578,
+            "rate": 3193.717799112542
+        },
+        "http_req_blocked": {
+            "avg": 0.003032950535203675,
+            "min": 0,
+            "med": 0.001,
+            "max": 6.442,
+            "p(90)": 0.002,
+            "p(95)": 0.003
+        },
+        "iteration_duration": {
+            "p(95)": 36.630614249999994,
+            "avg": 29.328669018655898,
+            "min": 16.891125,
+            "med": 28.201646,
+            "max": 95.073834,
+            "p(90)": 33.5641544
+        },
+        "http_req_duration": {
+            "p(90)": 33.481300000000005,
+            "p(95)": 36.54029999999999,
+            "avg": 29.21882580085442,
+            "min": 0.378,
+            "med": 28.122,
+            "max": 650.777
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 102578,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_waiting": {
+            "avg": 29.188460868802224,
+            "min": 0.365,
+            "med": 28.094,
+            "max": 650.688,
+            "p(90)": 33.4463,
+            "p(95)": 36.50015
+        }
+    },
+    "setup_data": {
+        "pool": [
+            {
+                "itineraryId": "db8370d5-fd0c-46e3-ae4a-bc220f5be38a",
+                "reservationId": null,
+                "roomId": "d2010fef-3be5-4282-921e-7ce6b87e438c"
+            },
+            {
+                "itineraryId": "6c708243-c633-485d-a467-50afafef55f0",
+                "reservationId": null,
+                "roomId": "0ec0bd79-9912-48c6-a0bf-8b9b246ff295"
+            },
+            {
+                "itineraryId": "70315d3d-99c4-4430-973e-93c6d5d9ccb4",
+                "reservationId": null,
+                "roomId": "4e15eb65-6552-430a-bc03-94d005efcd3c"
+            },
+            {
+                "itineraryId": "129bbc6f-1e99-4a73-923e-8addd5ceefc5",
+                "reservationId": null,
+                "roomId": "a7c93021-f95c-4563-8f61-d9bbca837434"
+            },
+            {
+                "itineraryId": "f580c134-ef8a-47dd-841f-56976aaeb620",
+                "reservationId": null,
+                "roomId": "78d08c22-e67b-40a6-9981-338ee9e7c121"
+            },
+            {
+                "itineraryId": "cf80f82e-0838-45e7-b86a-819dbe5e3923",
+                "reservationId": null,
+                "roomId": "36a7c057-335b-4a1b-9e3b-07df0b56e356"
+            },
+            {
+                "itineraryId": "1d1b0076-9639-4b14-95b7-47643e4814a6",
+                "reservationId": null,
+                "roomId": "811b0af1-9d78-4ff9-a74e-46fa3736fc48"
+            },
+            {
+                "roomId": "dfdf702c-b877-4b55-bfbf-64883c56c3b1",
+                "itineraryId": "f698d5ff-e5ea-4453-8069-073e1fa58b8b",
+                "reservationId": null
+            },
+            {
+                "itineraryId": "f986378c-0c46-4369-ae1e-60ea08d57fdd",
+                "reservationId": null,
+                "roomId": "5e156652-76ea-4c7f-9306-84da234086e9"
+            },
+            {
+                "itineraryId": "b04be987-c79b-42ee-aa9b-a70b95c771d8",
+                "reservationId": null,
+                "roomId": "78d3ddc7-20cf-4596-83bc-24684c7eeb2f"
+            },
+            {
+                "itineraryId": "d98f8724-16f6-4d55-ab55-0b17fd1bce8f",
+                "reservationId": null,
+                "roomId": "80adf80e-7e87-440f-8305-20d9688aa6b1"
+            },
+            {
+                "itineraryId": "d51d82a3-0579-42e2-93c6-2b2d3c7a4c3d",
+                "reservationId": null,
+                "roomId": "8fae47de-5574-41b9-b2fc-21c846102de5"
+            },
+            {
+                "itineraryId": "db2338b1-6ede-4418-b4ed-61903636ac37",
+                "reservationId": null,
+                "roomId": "9f7d5fc4-4ed1-44f9-8b3a-d14b8ec902de"
+            },
+            {
+                "itineraryId": "1aff8d42-7a47-4cc5-ba02-8b86f254a91d",
+                "reservationId": null,
+                "roomId": "6be07e7c-cbba-4217-8f13-11a64d6ab5c3"
+            },
+            {
+                "itineraryId": "f19c22b1-1748-46a0-b690-1ba52827ad68",
+                "reservationId": null,
+                "roomId": "8eafc4d5-5e57-4467-b990-3a180c4543b8"
+            },
+            {
+                "itineraryId": "2bc9cb8f-9342-44bf-9214-19a7221a6e18",
+                "reservationId": null,
+                "roomId": "ce4c7c20-8ead-4aed-a7b2-974e1f45552b"
+            },
+            {
+                "itineraryId": "43f20165-3560-4b08-9a6d-9e151695a7c0",
+                "reservationId": null,
+                "roomId": "b95f5cee-299a-4181-b8da-8cc2ca4d7222"
+            },
+            {
+                "itineraryId": "31367466-1ed4-4408-927a-a5b8ee1c1aaf",
+                "reservationId": null,
+                "roomId": "cde26b52-84d3-49bc-8928-2d8777421a47"
+            },
+            {
+                "itineraryId": "9c196f20-81c8-4a57-815d-d700628e756b",
+                "reservationId": null,
+                "roomId": "db650701-f2eb-4043-806d-db4510ddf55e"
+            },
+            {
+                "itineraryId": "73e0bb93-697e-4d51-afd3-b58790f1095d",
+                "reservationId": null,
+                "roomId": "c089d60b-9312-43b6-b22f-abd4ab9c9c06"
+            },
+            {
+                "itineraryId": "6425a843-4ed9-4501-8844-fd22938ec475",
+                "reservationId": null,
+                "roomId": "86d40a8f-11cc-4694-95e4-5140aaa76c86"
+            },
+            {
+                "itineraryId": "13a1d946-101f-40ce-a769-0f930128d404",
+                "reservationId": null,
+                "roomId": "bc933044-39e0-4b5e-bfa5-8580527aaa3b"
+            },
+            {
+                "itineraryId": "2e718e32-ae34-4971-b5b6-5557b2e8bb69",
+                "reservationId": null,
+                "roomId": "f2b0608c-8cc0-4f99-81c8-7b594493c9bb"
+            },
+            {
+                "itineraryId": "400e926c-abf8-41b5-99c9-05de4b39e0cc",
+                "reservationId": null,
+                "roomId": "c8a280e2-b5d6-44f9-b25c-16867126f9de"
+            },
+            {
+                "reservationId": null,
+                "roomId": "28e51f2c-36ca-4af1-8d26-da06260e7ba7",
+                "itineraryId": "c8bdc38a-b3c5-4d2d-a496-32e10a3955b1"
+            },
+            {
+                "itineraryId": "90d5fdb1-b3fe-42ac-ba38-f64fcc6ff728",
+                "reservationId": null,
+                "roomId": "fd0b1186-7b4b-4f37-abb8-dc022fd8d7a0"
+            },
+            {
+                "itineraryId": "a71df4ed-6cc8-48ee-a7f6-f25cd9f6c789",
+                "reservationId": null,
+                "roomId": "ae19019f-ee94-4039-ac1e-a848cbf5ac65"
+            },
+            {
+                "itineraryId": "4a986b74-017d-49d3-810f-91e23badd275",
+                "reservationId": null,
+                "roomId": "cbb7b33c-4567-49d1-ac16-c47e5425e606"
+            },
+            {
+                "itineraryId": "5b1de062-76a4-4fb4-878f-76ab990360a4",
+                "reservationId": null,
+                "roomId": "78f30759-1c8f-4b84-9894-5833359ee9c3"
+            },
+            {
+                "itineraryId": "3b5fc7a7-a9df-4ab0-83ad-9ced59c5a726",
+                "reservationId": null,
+                "roomId": "399b1748-639b-4909-b31e-a80cd481b932"
+            },
+            {
+                "itineraryId": "2c306f86-b87c-4290-942b-992c2a7eb492",
+                "reservationId": null,
+                "roomId": "e5a907a3-4398-480c-9bc4-b157773009ff"
+            },
+            {
+                "itineraryId": "94122f2a-a948-47a9-9f67-bb94ff63cd1b",
+                "reservationId": null,
+                "roomId": "b3731cda-2e61-40db-8af4-024befeec283"
+            },
+            {
+                "itineraryId": "c5c8d2f3-249f-4f81-9dd8-3d9ca8a11f0a",
+                "reservationId": null,
+                "roomId": "0ed5297f-d859-4916-8842-9a2f19be63cd"
+            },
+            {
+                "reservationId": null,
+                "roomId": "a753cb2e-56a2-4059-b778-27945c60ac15",
+                "itineraryId": "e0ba0296-17d2-4fc5-a5c3-93a49198bac1"
+            },
+            {
+                "itineraryId": "1b05699e-4a13-48c9-a2c9-1b174230213f",
+                "reservationId": null,
+                "roomId": "22cc541e-5908-4667-8a06-74d5baf02a27"
+            },
+            {
+                "itineraryId": "9136d428-8b83-4e59-acf4-4c0b8cb9ae5a",
+                "reservationId": null,
+                "roomId": "f723566a-79c8-4089-a17b-eda0ebbffaf5"
+            },
+            {
+                "itineraryId": "ebad89af-3efa-4ce4-aa42-1e1a73751884",
+                "reservationId": null,
+                "roomId": "5d0eef5b-d81a-4611-8a93-28dad646d791"
+            },
+            {
+                "itineraryId": "2cf526a0-6690-44b3-b326-b1ed071b797c",
+                "reservationId": null,
+                "roomId": "491fbf92-3652-41ef-9c81-a5da8c7f8fba"
+            },
+            {
+                "itineraryId": "2dc5ec34-e86f-40b3-89a5-0680390e76f6",
+                "reservationId": null,
+                "roomId": "854f1270-ecf6-43f2-a7de-8d9c91f8e2d4"
+            },
+            {
+                "itineraryId": "d1b8cfec-b115-4bd8-a970-b16e9296b0f5",
+                "reservationId": null,
+                "roomId": "9f3aed8d-ac4b-4812-9399-84ef0227de38"
+            },
+            {
+                "itineraryId": "a74f1a6d-3685-4ee8-a42e-97e61e082c8f",
+                "reservationId": null,
+                "roomId": "2dba8ba4-d461-4846-b885-269c01522ba8"
+            },
+            {
+                "reservationId": null,
+                "roomId": "9d81e90e-0cd5-4852-99c4-19d27da0fa12",
+                "itineraryId": "a4f977c0-b34a-444f-a905-146709ee08b5"
+            },
+            {
+                "itineraryId": "4bc6c0a5-c583-404a-b6e9-a3953d0fe0f0",
+                "reservationId": null,
+                "roomId": "5c7a5fd6-fe1b-45a6-82a8-bf91906cc8b1"
+            },
+            {
+                "itineraryId": "df57f92e-4399-4b36-9522-a44ce58f8d6d",
+                "reservationId": null,
+                "roomId": "5241bf3a-e00a-40b9-b757-cb75d0be1d54"
+            },
+            {
+                "roomId": "e344b4e0-9095-42f9-ba41-5a9aecbe70ec",
+                "itineraryId": "de8fd0d8-d3bd-4a3d-98d4-d1fe2777a786",
+                "reservationId": null
+            },
+            {
+                "reservationId": null,
+                "roomId": "e712fcf4-11d2-46d6-aa7d-70b2beae2a95",
+                "itineraryId": "dfdd123b-4e6b-423c-9e1b-d37f715857bd"
+            },
+            {
+                "itineraryId": "b1a1b9ba-bdab-48b5-a729-a8d94c317c85",
+                "reservationId": null,
+                "roomId": "d002a17d-5ed4-4a39-b791-239cd657b983"
+            },
+            {
+                "itineraryId": "8e8951e0-8314-4644-8c75-113251941e3f",
+                "reservationId": null,
+                "roomId": "bca4b280-fe05-4be4-a361-58664cb7792d"
+            },
+            {
+                "roomId": "92f98ea4-9cec-458b-aa56-fda9476fb1cf",
+                "itineraryId": "7d0623be-73e4-40f7-a3f1-8dd425d5be4d",
+                "reservationId": null
+            },
+            {
+                "itineraryId": "1042f32a-6df3-41bb-9978-a728d4020547",
+                "reservationId": null,
+                "roomId": "b63b9a61-fdb4-48b7-8c52-1f4cbdfc2729"
+            },
+            {
+                "itineraryId": "6e633d55-a701-4aa1-836a-3bd5eb8f0a20",
+                "reservationId": null,
+                "roomId": "b5bad210-8d76-4863-92e4-891d4d73412e"
+            },
+            {
+                "itineraryId": "31f8ef98-d2a8-40f4-b70f-d1bb61c6b54f",
+                "reservationId": null,
+                "roomId": "dfca544c-a38f-4241-93a4-e08c948ce591"
+            },
+            {
+                "itineraryId": "563f5257-c57d-4ec5-814d-a88a2a4a4a79",
+                "reservationId": null,
+                "roomId": "d9ffa16c-10f3-40e0-ba69-96d21e52afbf"
+            },
+            {
+                "itineraryId": "02359108-54b7-408a-ac9b-cc6966b61f6a",
+                "reservationId": null,
+                "roomId": "2bceb22f-225c-44a3-ac44-7a02b68e60ed"
+            },
+            {
+                "itineraryId": "19af75e0-487f-4319-b068-8a315fc21eb8",
+                "reservationId": null,
+                "roomId": "52855a02-28ce-4d6f-b42f-650432f65ba9"
+            },
+            {
+                "itineraryId": "952f33f7-846b-42d3-adb0-836d4b03e8ff",
+                "reservationId": null,
+                "roomId": "a0a1fba1-260c-4e2f-b659-05261e894fd0"
+            },
+            {
+                "roomId": "5350993f-283d-4cd5-a831-da8653820957",
+                "itineraryId": "b8804465-1d78-42c4-ae54-d4f862add1f0",
+                "reservationId": null
+            },
+            {
+                "itineraryId": "e81d7ded-02bf-4f5a-9249-01db16ea994c",
+                "reservationId": null,
+                "roomId": "fa99728e-21ab-464c-a286-0bef97a06b17"
+            },
+            {
+                "itineraryId": "0dc624f8-8f84-4e96-bb6c-cd9f497646e5",
+                "reservationId": null,
+                "roomId": "98393ea8-1b9d-40fc-ab13-2d3286d4308f"
+            },
+            {
+                "itineraryId": "1a151c97-7818-4509-aba5-6d5bd420a949",
+                "reservationId": null,
+                "roomId": "958d4cee-8e49-49e0-aa21-296c3af13a66"
+            },
+            {
+                "itineraryId": "8f9cdd92-872a-410b-af6e-94e49fabaf2f",
+                "reservationId": null,
+                "roomId": "b031dbf1-a484-4312-b394-e31adbfe0e19"
+            },
+            {
+                "itineraryId": "e16387d8-e97c-47ea-925d-4bcf93096658",
+                "reservationId": null,
+                "roomId": "b0e68a52-fa70-4869-8975-a98a9a979903"
+            },
+            {
+                "itineraryId": "ab8640a7-3a1f-4050-b22c-95371098c8d8",
+                "reservationId": null,
+                "roomId": "b9acc7a3-bb1e-455e-a6ce-2a1f4daa2a65"
+            },
+            {
+                "roomId": "342e0945-f566-4f8d-bc6d-9ab54a8815c6",
+                "itineraryId": "60c078f8-a997-4d9d-a63b-f6295937342b",
+                "reservationId": null
+            },
+            {
+                "itineraryId": "6da37f9f-93bc-46a1-9a9f-c60cf0746e4a",
+                "reservationId": null,
+                "roomId": "07e3d0ad-8e3a-407a-ae36-31ee24e82013"
+            },
+            {
+                "itineraryId": "006143a2-bbba-4a13-98b7-67aa16d0d8a0",
+                "reservationId": null,
+                "roomId": "03bb18a1-dc69-45eb-a496-abfad79df9c3"
+            },
+            {
+                "itineraryId": "293e52c9-895d-4b54-ac59-d8ba8f295924",
+                "reservationId": null,
+                "roomId": "632742ca-a127-4583-afba-01ddffb6eaa1"
+            },
+            {
+                "itineraryId": "47186958-d78b-4671-afba-46852e15a1f4",
+                "reservationId": null,
+                "roomId": "51c844b1-0306-4ae1-993b-a61a5be761c7"
+            },
+            {
+                "itineraryId": "65cb462c-7c94-44b8-b185-405730de8611",
+                "reservationId": null,
+                "roomId": "ca22932b-0ff5-4082-a0a1-6e361063fca2"
+            },
+            {
+                "itineraryId": "d537f95c-03c0-493f-9fd7-c0328b4d0b08",
+                "reservationId": null,
+                "roomId": "f0d39669-0073-4a67-af49-c995b6c0b92d"
+            },
+            {
+                "itineraryId": "f7f66d71-fde9-4279-8d71-1562b4821b75",
+                "reservationId": null,
+                "roomId": "95d6f6a7-bbde-4587-95fe-c73da4fc97bb"
+            },
+            {
+                "itineraryId": "b2e788a5-2a89-4d20-b429-d7d703ecf595",
+                "reservationId": null,
+                "roomId": "ae3ef55f-681a-434e-bd5a-a20847c18da9"
+            },
+            {
+                "itineraryId": "829e0544-bce2-4fc6-adf6-05939d05e5f6",
+                "reservationId": null,
+                "roomId": "90fec4c3-3eb5-49f7-8df9-006413d12b06"
+            },
+            {
+                "roomId": "cad26817-19f2-4eab-a6a9-3d9d14c3178c",
+                "itineraryId": "cacdda5d-2fbc-44d4-acc5-d3f1f0540c43",
+                "reservationId": null
+            },
+            {
+                "roomId": "dde82f2e-1c89-4039-ad4b-7912d70607f1",
+                "itineraryId": "998122ee-1c50-4d23-88f3-1f2d03557546",
+                "reservationId": null
+            },
+            {
+                "itineraryId": "42beada8-25fe-435d-8bf6-3c7424bf462b",
+                "reservationId": null,
+                "roomId": "1dfef616-b5d3-472e-98aa-0a46bac1454a"
+            },
+            {
+                "itineraryId": "e0cae584-9410-4e16-ac73-b860d2cd0035",
+                "reservationId": null,
+                "roomId": "aa800f31-ad05-46c5-bb74-545534e93efe"
+            },
+            {
+                "itineraryId": "4aa6996c-0bf7-4826-b46b-c280e4675419",
+                "reservationId": null,
+                "roomId": "0d53247b-de17-4256-8f26-cecfab3511fe"
+            },
+            {
+                "itineraryId": "46639799-5ee5-4c22-a5de-143dd5bae9ec",
+                "reservationId": null,
+                "roomId": "410da082-e1fc-4bda-bd37-bd8b3a955ffb"
+            },
+            {
+                "itineraryId": "b333fc07-4755-414f-9e92-83409623c328",
+                "reservationId": null,
+                "roomId": "3a956e93-8afc-466d-8233-093ae3340f82"
+            },
+            {
+                "itineraryId": "21bdda34-7a5d-4f54-a554-edaeedfd120c",
+                "reservationId": null,
+                "roomId": "956b9b2d-79f7-45ac-987e-d2f3ade8dc5b"
+            },
+            {
+                "roomId": "e6383fbf-37b6-430d-ae43-ed357aeeef84",
+                "itineraryId": "13e0d7d3-1373-4010-aceb-51eb353e6bc0",
+                "reservationId": null
+            },
+            {
+                "roomId": "e41eccd6-fdb5-4fa6-b7a3-1d35d7d702ca",
+                "itineraryId": "fbe89c1f-ab61-42b3-909d-b0acd4beca54",
+                "reservationId": null
+            },
+            {
+                "itineraryId": "4f9b10d2-a7db-46f0-af2c-9fab168af540",
+                "reservationId": null,
+                "roomId": "3dd94696-96c1-411b-9ae2-0ef047472810"
+            },
+            {
+                "itineraryId": "772478cd-f0be-4249-88ec-3401a5430b10",
+                "reservationId": null,
+                "roomId": "06555049-5043-4297-a7db-5131cb09b499"
+            },
+            {
+                "itineraryId": "1b2c4764-1109-4704-aaf7-0e5ad39b4bed",
+                "reservationId": null,
+                "roomId": "3926595b-a6ba-4734-8353-134f810edcb3"
+            },
+            {
+                "itineraryId": "8f504f05-065a-410f-962b-5218a3f26058",
+                "reservationId": null,
+                "roomId": "56daad1c-d4a6-4007-9257-10a9f91f781c"
+            },
+            {
+                "roomId": "b7590898-032a-4120-83c9-41316a6f2841",
+                "itineraryId": "406b834e-3ddd-418e-b6a4-8aa9bab932a9",
+                "reservationId": null
+            },
+            {
+                "itineraryId": "3efa7e2b-7c13-41d3-b4c0-27824d228bce",
+                "reservationId": null,
+                "roomId": "6462a0d6-10be-4f60-bcff-5b85714150e9"
+            },
+            {
+                "itineraryId": "d5e20afd-98a2-4409-8314-210cdc1070ad",
+                "reservationId": null,
+                "roomId": "ca820887-e8cb-4eb5-ac85-90c09a0f9b10"
+            },
+            {
+                "itineraryId": "88881d3b-edfb-4f54-ad47-6e957f270357",
+                "reservationId": null,
+                "roomId": "10c5cfd0-e593-400d-ab5d-f08599e141be"
+            },
+            {
+                "itineraryId": "e3bf4c4a-c427-4b49-a027-ffcff5d3137d",
+                "reservationId": null,
+                "roomId": "c4060fcc-a3ac-4953-aaa7-49e9143fa503"
+            },
+            {
+                "itineraryId": "62df0dd6-1409-4e1c-8137-9ad88d96f4f3",
+                "reservationId": null,
+                "roomId": "b09600b3-38c4-4558-a114-ab84b9e252a1"
+            },
+            {
+                "itineraryId": "ec8c98b9-a036-4544-8071-1a2ff1d9d983",
+                "reservationId": null,
+                "roomId": "310deb8b-d02d-44d6-8c74-dd2f65d31008"
+            },
+            {
+                "itineraryId": "8b74b130-e55b-4bda-9b21-f0cd8e5334a9",
+                "reservationId": null,
+                "roomId": "3e858fc4-73d9-4e74-a3a2-91a2490a671e"
+            },
+            {
+                "roomId": "cf75966b-5dc0-49f5-b093-a20e0da6279d",
+                "itineraryId": "b2fa2024-e128-4144-a851-b3fd99c3eca3",
+                "reservationId": null
+            },
+            {
+                "itineraryId": "bb10d7d8-a7af-4cae-84c7-87c525b7f8d3",
+                "reservationId": null,
+                "roomId": "57d75b85-de32-4701-8222-a61ee5c73a69"
+            },
+            {
+                "itineraryId": "0c41d9da-d2c9-42c7-80e9-e9e01cd6ee75",
+                "reservationId": null,
+                "roomId": "3affed8e-bc9c-4310-b376-8247b51fbedc"
+            },
+            {
+                "itineraryId": "1d82f0e3-a1a1-4079-a359-94f863514154",
+                "reservationId": null,
+                "roomId": "d847d67b-78c8-4ac5-9b93-c27bca9a2ab5"
+            },
+            {
+                "roomId": "9e04ee7d-a1ae-455a-8146-3f39aea4b873",
+                "itineraryId": "5c1366f4-7dfa-41be-9cb9-5ce2a915323a",
+                "reservationId": null
+            }
+        ],
+        "token": "dev-load-test-user"
+    }
+}

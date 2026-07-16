@@ -27,11 +27,20 @@ export function params(token, name) {
 
 // teardown() 단계에서 1회 실행 — 테스트가 생성한 채팅방(+cascade로 일정/메시지)을 전부 삭제.
 // 목록을 가져와 남은 방이 없을 때까지 반복 삭제한다. clerkId=CLERK_ID 소유 데이터만 대상.
+// 삭제 병렬도 — 한 라운드에서 http.batch로 동시에 쏘는 DELETE 개수.
+//   순차 삭제는 개당 왕복이라 대량(수만 건) 시 teardown이 수백 초 → 타임아웃. 병렬로 분/초 단위로 단축.
+//   실효 동시성은 options.batchPerHost 로도 제한되므로 stress-endpoint.js/cleanup.js에서 함께 올린다.
+const DELETE_BATCH = 40;
+
 export function cleanup(token) {
+  // 채팅방을 목록 조회 → http.batch로 병렬 DELETE(cascade로 일정/메시지 동반 삭제)해 전부 지운다.
+  //   ⚠️ signout(유저 삭제)은 이 환경에서 chat_rooms를 cascade 삭제하지 않는다(실측). 실제 정리는
+  //      이 삭제 루프가 담당한다. 남은 방은 라운드마다 다시 조회해 처리하므로 일부 실패도 재시도된다.
   const listParams = params(token, 'GET /chat-rooms');
+  const delParams = params(token, 'DELETE /chat-rooms/{id}');
   let deleted = 0;
 
-  for (let round = 0; round < 1000; round++) {
+  for (let round = 0; round < 2000; round++) {
     const res = http.get(`${BASE_URL}/api/v1/chat-rooms`, listParams);
     if (res.status !== 200) {
       console.error(`[teardown] 목록 조회 실패 status=${res.status} — 정리 중단`);
@@ -40,20 +49,19 @@ export function cleanup(token) {
     const rooms = res.json('rooms') || [];
     if (rooms.length === 0) break;
 
-    for (const room of rooms) {
-      const del = http.del(
-        `${BASE_URL}/api/v1/chat-rooms/${room.roomId}`,
-        null,
-        params(token, 'DELETE /chat-rooms/{id}'),
-      );
-      if (del.status === 200) deleted++;
-      else console.error(`[teardown] 삭제 실패 roomId=${room.roomId} status=${del.status}`);
+    // DELETE_BATCH개씩 묶어 http.batch로 동시 삭제
+    for (let i = 0; i < rooms.length; i += DELETE_BATCH) {
+      const reqs = rooms.slice(i, i + DELETE_BATCH).map((room) => ({
+        method: 'DELETE',
+        url: `${BASE_URL}/api/v1/chat-rooms/${room.roomId}`,
+        params: delParams,
+      }));
+      const responses = http.batch(reqs);
+      for (const r of responses) if (r.status === 200) deleted++;
     }
   }
 
-  // 마지막으로 테스트 유저 자체를 삭제한다 (setup의 signup으로 만든 dev 가짜 유저).
-  //   signout = DB에서 유저 + 연관 데이터 cascade 삭제. Clerk 호출은 404를 성공 처리하므로
-  //   Clerk에 없는 dev 유저(dev-{clerkId})도 안전하게 삭제된다.
+  // 테스트 유저 행 정리(setup의 signup으로 만든 dev 가짜 유저). Clerk 404는 성공 처리됨.
   const out = http.del(`${BASE_URL}/api/v1/users/signout`, null, params(token, 'DELETE /users/signout'));
   const userDeleted = out.status === 204 || out.status === 200;
   if (!userDeleted) console.error(`[teardown] 테스트 유저 삭제 실패 status=${out.status} body=${out.body}`);

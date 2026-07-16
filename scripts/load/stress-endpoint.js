@@ -39,8 +39,9 @@ const isPatch = PATCH_RESOURCE.has(EP);
 // VU 모드에선 동시 작업자 = VUS, RPS 모드에선 maxVUs를 풀 크기로 캡해 1:1 유지.
 const concurrency = MODE === 'vus' ? vus : 0;
 const poolSize = isPatch ? Math.max(POOL, concurrency) : 1;
-const maxVUs = isPatch ? poolSize : 3000;
-const preAllocatedVUs = isPatch ? poolSize : Math.max(50, Math.ceil(rate / 5));
+const maxVUs = isPatch ? poolSize : (__ENV.MAXVUS ? Number(__ENV.MAXVUS) : 3000); // RPS 모드 VU 상한(메모리 캡). 기본 3000, -e MAXVUS=1200 등으로 낮춰 포화 시 VU 폭증 방지
+// preAllocatedVUs는 maxVUs를 넘을 수 없다(k6 config 에러). MAXVUS 캡을 낮춘 경우에도 안전하도록 min() 처리.
+const preAllocatedVUs = isPatch ? poolSize : Math.min(Math.max(50, Math.ceil(rate / 5)), maxVUs);
 
 // 모드별 executor 구성
 const scenario = MODE === 'vus'
@@ -61,6 +62,12 @@ const ACTION = NAME_BY_EP[EP];
 
 export const options = {
   scenarios: { ep: scenario },
+  // teardown 정리 여유(k6 기본 60s). 고RPS POST는 방을 대량 생성(rps3000×15s≈45,000개)한다.
+  // cleanup은 http.batch로 병렬 삭제(아래 batchPerHost)해 수초~수십초면 끝나지만, 안전망으로 넉넉히.
+  teardownTimeout: '240s',
+  // cleanup의 http.batch 병렬 삭제가 실제로 동시 실행되도록 배치 상한을 올린다(기본 batch 20 / host 6).
+  batch: 40,
+  batchPerHost: 40,
   // 액션 요청만 골라내는 하위지표(항상 통과) → summary-export에 순수 p95/count가 노출된다.
   thresholds: {
     http_req_failed: ['rate<0.01'],
