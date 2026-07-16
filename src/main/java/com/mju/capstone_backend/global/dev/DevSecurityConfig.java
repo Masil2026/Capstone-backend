@@ -20,7 +20,9 @@ import java.time.Instant;
 /**
  * 개발 환경 전용 보안 설정.
  *
- * 1. /dev/** 경로 인증 생략 (SecurityWebFilterChain @Order(1))
+ * 1. /dev/**, /actuator/** 경로 인증 생략 (SecurityWebFilterChain @Order(1))
+ *    - /actuator/**(Prometheus 스크레이프)는 dev에서만 공개. prod에선 이 체인이 없어
+ *      메인 체인의 anyExchange().authenticated() 에 걸려 인증 대상이 된다(공개 노출 방지).
  * 2. "dev-{clerkId}" 형태의 토큰을 Swagger Authorize에 입력하면
  *    Clerk API 호출 없이 즉시 인증 처리 (ReactiveJwtDecoder 교체)
  *
@@ -40,7 +42,7 @@ public class DevSecurityConfig {
     @Order(1)
     public SecurityWebFilterChain devSecurityFilterChain(ServerHttpSecurity http) {
         return http
-                .securityMatcher(ServerWebExchangeMatchers.pathMatchers("/dev/**"))
+                .securityMatcher(ServerWebExchangeMatchers.pathMatchers("/dev/**", "/actuator/**"))
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchanges -> exchanges.anyExchange().permitAll())
                 .build();
