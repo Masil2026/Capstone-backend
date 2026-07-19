@@ -31,6 +31,10 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive' // Reactive Redis (비동기 레디스 전용)
 
+	// 모니터링 — Actuator + Prometheus 지표 노출 (부하테스트 시각화용)
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+
 	implementation 'me.paulschwarz:springboot4-dotenv:5.1.0'
 
 	compileOnly 'org.projectlombok:lombok'

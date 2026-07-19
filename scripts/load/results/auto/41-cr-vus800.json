@@ -1,0 +1,166 @@
+{
+    "root_group": {
+        "checks": {
+            "200": {
+                "id": "4230b0c1b1cb609da348fcf04ffd96f4",
+                "passes": 258541,
+                "fails": 0,
+                "name": "200",
+                "path": "::200"
+            }
+        },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {}
+    },
+    "metrics": {
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 258548,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "iterations": {
+            "count": 258541,
+            "rate": 8382.025122375991
+        },
+        "checks": {
+            "passes": 258541,
+            "fails": 0,
+            "value": 1
+        },
+        "vus": {
+            "min": 800,
+            "max": 800,
+            "value": 800
+        },
+        "vus_max": {
+            "value": 800,
+            "min": 800,
+            "max": 800
+        },
+        "http_req_blocked": {
+            "p(95)": 0.002,
+            "avg": 0.23614720670609698,
+            "min": 0,
+            "med": 0.001,
+            "max": 159.686,
+            "p(90)": 0.002
+        },
+        "data_received": {
+            "count": 159005710,
+            "rate": 5155042.5496197175
+        },
+        "http_req_failed{name:GET /chat-rooms}": {
+            "passes": 0,
+            "fails": 258543,
+            "thresholds": {
+                "rate>=0": false
+            },
+            "value": 0
+        },
+        "http_req_sending": {
+            "med": 0.002,
+            "max": 27.315,
+            "p(90)": 0.007,
+            "p(95)": 0.01,
+            "avg": 0.006262469638106855,
+            "min": 0.001
+        },
+        "http_req_waiting": {
+            "p(90)": 105.365,
+            "p(95)": 109.61364999999999,
+            "avg": 92.63949153735611,
+            "min": 1.338,
+            "med": 90.107,
+            "max": 746.432
+        },
+        "http_req_connecting": {
+            "avg": 0.23487648715132198,
+            "min": 0,
+            "med": 0,
+            "max": 159.677,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "iteration_duration": {
+            "max": 300.792042,
+            "p(90)": 105.508375,
+            "p(95)": 109.876083,
+            "avg": 92.93183243078727,
+            "min": 9.022083,
+            "med": 90.208666
+        },
+        "http_reqs{name:GET /chat-rooms}": {
+            "count": 258543,
+            "rate": 8382.089963349936,
+            "thresholds": {
+                "count>=0": false
+            }
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "data_sent": {
+            "count": 41626466,
+            "rate": 1349550.298667252
+        },
+        "http_reqs": {
+            "count": 258548,
+            "rate": 8382.2520657848
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 92.65926414050642,
+            "min": 1.364,
+            "med": 90.126,
+            "max": 746.506,
+            "p(90)": 105.384,
+            "p(95)": 109.634
+        },
+        "http_req_duration": {
+            "p(90)": 105.384,
+            "p(95)": 109.634,
+            "avg": 92.65926414050642,
+            "min": 1.364,
+            "med": 90.126,
+            "max": 746.506
+        },
+        "http_req_receiving": {
+            "max": 16.769,
+            "p(90)": 0.023,
+            "p(95)": 0.037,
+            "avg": 0.013510133514863904,
+            "min": 0.004,
+            "med": 0.01
+        },
+        "http_req_duration{name:GET /chat-rooms}": {
+            "p(90)": 105.384,
+            "p(95)": 109.63389999999998,
+            "avg": 92.65806922639428,
+            "min": 1.364,
+            "med": 90.126,
+            "max": 174.131,
+            "thresholds": {
+                "p(95)>=0": false
+            }
+        }
+    },
+    "setup_data": {
+        "pool": [
+            {
+                "roomId": "1822d952-db4d-4dbd-997b-bf6aba6df568",
+                "itineraryId": "109bd221-7c72-4b36-95fb-1e163acd0fc9",
+                "reservationId": null
+            }
+        ],
+        "token": "dev-load-test-user"
+    }
+}

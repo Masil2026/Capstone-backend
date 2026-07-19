@@ -1,0 +1,166 @@
+{
+    "root_group": {
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "200": {
+                    "path": "::200",
+                    "id": "4230b0c1b1cb609da348fcf04ffd96f4",
+                    "passes": 304327,
+                    "fails": 0,
+                    "name": "200"
+                }
+            },
+        "name": ""
+    },
+    "metrics": {
+        "vus": {
+            "value": 100,
+            "min": 100,
+            "max": 100
+        },
+        "http_req_sending": {
+            "avg": 0.0035104917623295473,
+            "min": 0.001,
+            "med": 0.002,
+            "max": 6.948,
+            "p(90)": 0.007,
+            "p(95)": 0.01
+        },
+        "checks": {
+            "passes": 304327,
+            "fails": 0,
+            "value": 1
+        },
+        "iterations": {
+            "count": 304327,
+            "rate": 9939.315135799563
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 304334,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_receiving": {
+            "avg": 0.013622151977764603,
+            "min": 0.004,
+            "med": 0.009,
+            "max": 18.927,
+            "p(90)": 0.025,
+            "p(95)": 0.037
+        },
+        "data_sent": {
+            "count": 49302339,
+            "rate": 1610213.6328785191
+        },
+        "http_reqs": {
+            "count": 304334,
+            "rate": 9939.543755691819
+        },
+        "http_req_duration{name:GET /itineraries}": {
+            "max": 33.324,
+            "p(90)": 11.386,
+            "p(95)": 12.329,
+            "avg": 9.81851183430977,
+            "min": 1.668,
+            "med": 9.41,
+            "thresholds": {
+                "p(95)>=0": false
+            }
+        },
+        "vus_max": {
+            "value": 100,
+            "min": 100,
+            "max": 100
+        },
+        "http_req_tls_handshaking": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0
+        },
+        "http_req_duration{expected_response:true}": {
+            "min": 1.185,
+            "med": 9.41,
+            "max": 575.779,
+            "p(90)": 11.386,
+            "p(95)": 12.329,
+            "avg": 9.82028344516219
+        },
+        "http_reqs{name:GET /itineraries}": {
+            "count": 304327,
+            "rate": 9939.315135799563,
+            "thresholds": {
+                "count>=0": false
+            }
+        },
+        "iteration_duration": {
+            "med": 9.444459,
+            "max": 41.150334,
+            "p(90)": 11.423075200000001,
+            "p(95)": 12.369487399999999,
+            "avg": 9.85457538617025,
+            "min": 1.704583
+        },
+        "http_req_duration": {
+            "avg": 9.82028344516219,
+            "min": 1.185,
+            "med": 9.41,
+            "max": 575.779,
+            "p(90)": 11.386,
+            "p(95)": 12.329
+        },
+        "http_req_blocked": {
+            "p(95)": 0.002,
+            "avg": 0.0015286264433061218,
+            "min": 0,
+            "med": 0.001,
+            "max": 3.374,
+            "p(90)": 0.002
+        },
+        "http_req_connecting": {
+            "max": 2.381,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.0005596121366656369,
+            "min": 0,
+            "med": 0
+        },
+        "http_req_waiting": {
+            "avg": 9.803150801421982,
+            "min": 1.168,
+            "med": 9.394,
+            "max": 575.465,
+            "p(90)": 11.368,
+            "p(95)": 12.307
+        },
+        "data_received": {
+            "count": 194772275,
+            "rate": 6361259.503565622
+        },
+        "http_req_failed{name:GET /itineraries}": {
+            "passes": 0,
+            "fails": 304327,
+            "thresholds": {
+                "rate>=0": false
+            },
+            "value": 0
+        }
+    },
+    "setup_data": {
+        "pool": [
+            {
+                "roomId": "ba20437c-e8dd-42f9-8e6c-42a1f76df3f1",
+                "itineraryId": "18e7b510-76b8-4d7d-abe4-825d68876d8b",
+                "reservationId": null
+            }
+        ],
+        "token": "dev-load-test-user"
+    }
+}

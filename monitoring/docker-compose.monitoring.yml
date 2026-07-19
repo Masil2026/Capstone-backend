@@ -1,0 +1,52 @@
+# 부하테스트 모니터링 스택 — Prometheus + Grafana
+#
+# 구성:
+#   - prometheus : (A) 호스트에서 도는 Spring 백엔드의 /actuator/prometheus 스크레이프
+#                  (B) k6가 remote-write로 밀어넣는 부하 지표 수신
+#   - grafana    : 위 두 데이터를 대시보드로 시각화 (datasource/dashboard 자동 프로비저닝)
+#
+# 백엔드는 이 compose에 없다 — `./gradlew bootRun` 으로 호스트에서 따로 띄운다.
+# (부하테스트 README의 로깅 WARN 기동 방식 그대로 사용)
+#
+# 실행:  docker compose -f monitoring/docker-compose.monitoring.yml up -d
+# 종료:  docker compose -f monitoring/docker-compose.monitoring.yml down
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: loadtest-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      # k6 --out experimental-prometheus-rw 수신용
+      - "--web.enable-remote-write-receiver"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prom-data:/prometheus
+    # 컨테이너 안에서 호스트(gradlew bootRun)를 host.docker.internal 로 접근 (Linux 호환)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: loadtest-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_USERS_DEFAULT_THEME=light
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  prom-data:
+  grafana-data:

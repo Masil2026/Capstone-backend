@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # (A) Spring 백엔드 서버 내부 지표 — 호스트에서 gradlew bootRun 으로 8080 기동 중
+  - job_name: "spring-backend"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["host.docker.internal:8080"]
+        labels:
+          application: "capstone-backend"
+
+# (B) k6 부하 지표는 Prometheus remote-write 로 들어온다
+#     (k6 실행 시 --out experimental-prometheus-rw, 아래 URL로 push)
+#     별도 scrape 설정 불필요 — --web.enable-remote-write-receiver 로 수신.

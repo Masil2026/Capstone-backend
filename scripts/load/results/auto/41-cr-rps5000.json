@@ -1,0 +1,166 @@
+{
+    "setup_data": {
+        "pool": [
+            {
+                "itineraryId": "06ef6141-6c66-49fa-9489-b45285a757c1",
+                "reservationId": null,
+                "roomId": "053bd319-c875-4d6c-8709-afe491cf7e6c"
+            }
+        ],
+        "token": "dev-load-test-user"
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "200": {
+                    "path": "::200",
+                    "id": "4230b0c1b1cb609da348fcf04ffd96f4",
+                    "passes": 150001,
+                    "fails": 0,
+                    "name": "200"
+                }
+            }
+    },
+    "metrics": {
+        "http_req_sending": {
+            "min": 0.001,
+            "med": 0.003,
+            "max": 10.03,
+            "p(90)": 0.006,
+            "p(95)": 0.008,
+            "avg": 0.004832582262275336
+        },
+        "checks": {
+            "passes": 150001,
+            "fails": 0,
+            "value": 1
+        },
+        "http_reqs{name:GET /chat-rooms}": {
+            "rate": 4873.237287862477,
+            "count": 150003,
+            "thresholds": {
+                "count>=0": false
+            }
+        },
+        "http_req_tls_handshaking": {
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0
+        },
+        "http_req_connecting": {
+            "avg": 0.004907938243293675,
+            "min": 0,
+            "med": 0,
+            "max": 20.037,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "data_received": {
+            "count": 92253610,
+            "rate": 2997098.272647365
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 150008,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_duration{name:GET /chat-rooms}": {
+            "med": 1.002,
+            "max": 90.478,
+            "p(90)": 1.28,
+            "p(95)": 1.604,
+            "avg": 1.495247248388365,
+            "min": 0.717,
+            "thresholds": {
+                "p(95)>=0": false
+            }
+        },
+        "http_req_blocked": {
+            "min": 0,
+            "med": 0.001,
+            "max": 21.74,
+            "p(90)": 0.002,
+            "p(95)": 0.002,
+            "avg": 0.006406404991711092
+        },
+        "data_sent": {
+            "count": 24151526,
+            "rate": 784625.0879114425
+        },
+        "vus": {
+            "value": 5,
+            "min": 4,
+            "max": 7
+        },
+        "http_req_duration": {
+            "avg": 1.5003352821182865,
+            "min": 0.717,
+            "med": 1.002,
+            "max": 751.399,
+            "p(90)": 1.28,
+            "p(95)": 1.604
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(95)": 1.604,
+            "avg": 1.5003352821182865,
+            "min": 0.717,
+            "med": 1.002,
+            "max": 751.399,
+            "p(90)": 1.28
+        },
+        "iteration_duration": {
+            "max": 90.590375,
+            "p(90)": 1.319833,
+            "p(95)": 1.655791,
+            "avg": 1.5332479592669337,
+            "min": 0.743625,
+            "med": 1.031625
+        },
+        "http_reqs": {
+            "count": 150008,
+            "rate": 4873.399725856646
+        },
+        "http_req_failed{name:GET /chat-rooms}": {
+            "passes": 0,
+            "fails": 150003,
+            "thresholds": {
+                "rate>=0": false
+            },
+            "value": 0
+        },
+        "http_req_waiting": {
+            "p(95)": 1.578,
+            "avg": 1.483350034664856,
+            "min": 0.704,
+            "med": 0.985,
+            "max": 751.301,
+            "p(90)": 1.263
+        },
+        "iterations": {
+            "rate": 4873.172312664809,
+            "count": 150001
+        },
+        "vus_max": {
+            "value": 1000,
+            "min": 1000,
+            "max": 1000
+        },
+        "http_req_receiving": {
+            "p(90)": 0.016,
+            "p(95)": 0.032,
+            "avg": 0.01215266519118888,
+            "min": 0.004,
+            "med": 0.01,
+            "max": 3.897
+        }
+    }
+}

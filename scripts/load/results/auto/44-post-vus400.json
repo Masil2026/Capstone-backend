@@ -1,0 +1,166 @@
+{
+    "setup_data": {
+        "pool": [
+            {
+                "itineraryId": "468861fd-99d7-4cdd-8115-bccce0f3a83f",
+                "reservationId": null,
+                "roomId": "a8078ac2-4554-4f36-98be-7c349c6b8078"
+            }
+        ],
+        "token": "dev-load-test-user"
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "201": {
+                    "name": "201",
+                    "path": "::201",
+                    "id": "69bd8e107d6c0f51015fe6aa7d1546ff",
+                    "passes": 30762,
+                    "fails": 0
+                }
+            }
+    },
+    "metrics": {
+        "http_req_duration{name:POST /chat-rooms}": {
+            "avg": 130.41037972173456,
+            "min": 32.842,
+            "med": 125.3395,
+            "max": 219.532,
+            "p(90)": 159.7263,
+            "p(95)": 176.95229999999998,
+            "thresholds": {
+                "p(95)>=0": false
+            }
+        },
+        "vus_max": {
+            "min": 400,
+            "max": 400,
+            "value": 400
+        },
+        "vus": {
+            "value": 0,
+            "min": 0,
+            "max": 400
+        },
+        "data_sent": {
+            "rate": 880060.4236988681,
+            "count": 17289609
+        },
+        "http_req_receiving": {
+            "avg": 0.019731046139341107,
+            "min": 0.004,
+            "med": 0.016,
+            "max": 6.172,
+            "p(90)": 0.032,
+            "p(95)": 0.041
+        },
+        "http_req_blocked": {
+            "avg": 0.21455107181770394,
+            "min": 0,
+            "med": 0.001,
+            "max": 62.615,
+            "p(90)": 0.003,
+            "p(95)": 0.014
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "iteration_duration": {
+            "avg": 130.90304785524282,
+            "min": 33.828375,
+            "med": 125.6633335,
+            "max": 219.626208,
+            "p(90)": 160.1868084,
+            "p(95)": 177.20208749999998
+        },
+        "iterations": {
+            "count": 30762,
+            "rate": 1565.820184471759
+        },
+        "http_reqs": {
+            "count": 61531,
+            "rate": 3131.996676767824
+        },
+        "http_reqs{name:POST /chat-rooms}": {
+            "count": 30762,
+            "rate": 1565.820184471759,
+            "thresholds": {
+                "count>=0": false
+            }
+        },
+        "http_req_connecting": {
+            "avg": 0.20890445466512833,
+            "min": 0,
+            "med": 0,
+            "max": 62.601,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "data_received": {
+            "count": 39734153,
+            "rate": 2022512.8008675994
+        },
+        "http_req_duration": {
+            "avg": 69.05992377825822,
+            "min": 1.045,
+            "med": 30.304,
+            "max": 583.877,
+            "p(90)": 149.463,
+            "p(95)": 159.73499999999999
+        },
+        "http_req_failed{name:POST /chat-rooms}": {
+            "passes": 0,
+            "fails": 30762,
+            "thresholds": {
+                "rate>=0": false
+            },
+            "value": 0
+        },
+        "http_req_waiting": {
+            "max": 583.767,
+            "p(90)": 149.429,
+            "p(95)": 159.7135,
+            "avg": 69.03342505403852,
+            "min": 1.008,
+            "med": 30.27
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 61531,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_duration{expected_response:true}": {
+            "max": 583.877,
+            "p(90)": 149.463,
+            "p(95)": 159.73499999999999,
+            "avg": 69.05992377825822,
+            "min": 1.045,
+            "med": 30.304
+        },
+        "checks": {
+            "passes": 30762,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_sending": {
+            "p(90)": 0.01,
+            "p(95)": 0.012,
+            "avg": 0.006767678080968055,
+            "min": 0.001,
+            "med": 0.004,
+            "max": 20.725
+        }
+    }
+}
