@@ -35,7 +35,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'io.micrometer:micrometer-registry-prometheus'
 
-	implementation 'me.paulschwarz:springboot4-dotenv:5.1.0'
+	implementation 'me.paulschwarz:springboot3-dotenv:5.1.0'
 
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.postgresql:postgresql'          // Flyway + JPA 전용 JDBC 드라이버 (3~7단계 후 Flyway 전용으로만 남음)
