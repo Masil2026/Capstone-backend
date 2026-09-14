@@ -23,6 +23,7 @@ public class SecurityConfig {
                 .cors(corsSpec -> {}) // WebConfig의 CORS 설정 사용
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll() // CORS preflight 허용
+                        .pathMatchers(HttpMethod.GET, "/actuator/health").permitAll() // Render keep-alive 헬스체크
                         .pathMatchers("/api/test/**").permitAll()            // 테스트 엔드포인트 인증 제외
                         .pathMatchers("/v3/api-docs/**").permitAll()         // Swagger
                         .pathMatchers("/swagger-ui/**").permitAll()          // Swagger UI
